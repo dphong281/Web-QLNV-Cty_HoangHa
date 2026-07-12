@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import {
-  getAllEmployees, createEmployee, updateEmployee, deactivateEmployee, importEmployeesFromExcel,
+  getAllEmployees, createEmployee, updateEmployee, deactivateEmployee, importEmployeesFromExcel, ConflictError,
 } from '../lib/employeeQueries'
 import { KHOI_LABELS, TRANG_THAI_NV_LABELS, TRANG_THAI_NV_COLORS, formatDate } from '../lib/format'
 import { NHAN_VIEN_SYNONYMS, NHAN_VIEN_REQUIRED, NHAN_VIEN_HEADERS } from '../lib/importSynonyms'
@@ -97,15 +97,21 @@ export default function NhanSu() {
     setSaving(true)
     try {
       if (editing) {
-        const { 'Mã NV': _omit, ...rest } = payload
-        await updateEmployee(editing['Mã NV'], rest)
+        const { 'Mã NV': _omit, updated_at: expectedUpdatedAt, ...rest } = payload
+        await updateEmployee(editing['Mã NV'], rest, expectedUpdatedAt)
       } else {
         await createEmployee(payload)
       }
       setModalOpen(false)
       load()
     } catch (err) {
-      setFormError(err.message)
+      if (err instanceof ConflictError) {
+        setFormError(err.message)
+        setModalOpen(false)
+        load()
+      } else {
+        setFormError(err.message)
+      }
     } finally {
       setSaving(false)
     }

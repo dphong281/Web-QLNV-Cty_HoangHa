@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import {
-  getContractsTable, createContractLogic, updateContractLogic, liquidateContract,
+  getContractsTable, createContractLogic, updateContractLogic, liquidateContract, ConflictError,
 } from '../lib/contractQueries'
 import { LOAI_HD_LABELS, formatCurrency, formatDate } from '../lib/format'
 import { exportToExcel } from '../lib/excelImport'
@@ -60,6 +60,7 @@ export default function HopDong() {
       maNv: c.ma_nv, loaiHd: c.loai_hd, ngayKy: c.ngay_ky, ngayHieuLuc: c.ngay_hieu_luc,
       ngayHetHan: c.ngay_het_han || '', luongCoBan: String(c.luong_co_ban),
       phuCapDocHai: String(c.phu_cap_doc_hai), phuCapTrachNhiem: String(c.phu_cap_trach_nhiem),
+      expectedUpdatedAt: c.updated_at,
     })
     setFormError(null)
     setModalOpen(true)
@@ -78,7 +79,13 @@ export default function HopDong() {
       setModalOpen(false)
       load()
     } catch (err) {
-      setFormError(err.message)
+      if (err instanceof ConflictError) {
+        setFormError(err.message)
+        setModalOpen(false)
+        load()
+      } else {
+        setFormError(err.message)
+      }
     } finally {
       setSaving(false)
     }

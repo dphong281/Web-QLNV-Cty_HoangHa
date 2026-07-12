@@ -1,7 +1,15 @@
 import { supabase } from './supabase'
 import { encryptValue, decryptValue } from './fernetCrypto'
 
-const COLUMNS = '"Mã NV", "Họ tên", "Ngày sinh", "Giới tính", "Số CCCD", "Ngày cấp CCCD", "Nơi cấp", "Địa chỉ thường trú", "Số ĐT", "Email", "Khối", "Chức vụ", "Nơi làm việc", "Ngạch", "Ngày vào Cty", "Trạng thái", "Quyết định đi kèm", "Ghi chú", "Thông tin học vấn", "Thông tin gia đình"'
+// ---------- KHOÁ ĐỒNG THỜI (optimistic lock) ----------
+export class ConflictError extends Error {
+  constructor() {
+    super('Dữ liệu này đã bị người khác thay đổi kể từ khi bạn mở form. Vui lòng tải lại rồi thử lại.')
+    this.name = 'ConflictError'
+  }
+}
+
+const COLUMNS = '"Mã NV", "Họ tên", "Ngày sinh", "Giới tính", "Số CCCD", "Ngày cấp CCCD", "Nơi cấp", "Địa chỉ thường trú", "Số ĐT", "Email", "Khối", "Chức vụ", "Nơi làm việc", "Ngạch", "Ngày vào Cty", "Trạng thái", "Quyết định đi kèm", "Ghi chú", "Thông tin học vấn", "Thông tin gia đình", updated_at'
 
 export async function getAllEmployees({ khoi, chucVu, noiLamViec, trangThai, keyword } = {}) {
   let query = supabase.from('nhan_vien').select(COLUMNS)
@@ -45,11 +53,15 @@ export async function createEmployee(data) {
   return res.data
 }
 
-export async function updateEmployee(maNv, data) {
+export async function updateEmployee(maNv, data, expectedUpdatedAt) {
   const payload = { ...data }
   if ('Số ĐT' in payload) payload['Số ĐT'] = await encryptValue(payload['Số ĐT'])
-  const res = await supabase.from('nhan_vien').update(payload).eq('Mã NV', maNv).select().single()
+  let query = supabase.from('nhan_vien').update(payload).eq('Mã NV', maNv)
+  if (expectedUpdatedAt) query = query.eq('updated_at', expectedUpdatedAt)
+  const res = await query.select().maybeSingle()
   if (res.error) throw res.error
+  if (!res.data && expectedUpdatedAt) throw new ConflictError()
+  if (res.data) res.data['Số ĐT'] = await decryptValue(res.data['Số ĐT'])
   return res.data
 }
 

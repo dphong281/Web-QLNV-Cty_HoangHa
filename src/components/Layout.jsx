@@ -12,6 +12,7 @@ const NAV_ITEMS = [
   { to: '/kho', label: 'Kho' },
   { to: '/khach-hang', label: 'Khách hàng' },
   { to: '/tai-khoan', label: 'Tài khoản', adminOnly: true },
+  { to: '/nhat-ky', label: 'Nhật ký hoạt động' },
   { to: '/cai-dat', label: 'Cài đặt' },
 ]
 
@@ -21,8 +22,8 @@ export default function Layout({ children }) {
   const visibleItems = NAV_ITEMS.filter((item) => !item.adminOnly || isAdmin)
 
   return (
-    <div className="min-h-screen flex">
-      <aside className="w-64 shrink-0 bg-[var(--color-ink)] text-white flex flex-col">
+    <div className="h-screen flex overflow-hidden">
+      <aside className="w-64 shrink-0 h-full overflow-y-auto bg-[var(--color-ink)] text-white flex flex-col">
         <div className="px-6 py-6 border-b border-white/10">
           <div className="text-[11px] tracking-[0.2em] text-[var(--color-accent)] font-semibold uppercase">
             Hoàng Hà
@@ -67,7 +68,7 @@ export default function Layout({ children }) {
           </div>
         </div>
       </aside>
-      <main className="flex-1 min-w-0">
+      <main className="flex-1 min-w-0 h-full overflow-y-auto">
         <div className="max-w-[1400px] mx-auto px-8 py-8">{children}</div>
       </main>
     </div>

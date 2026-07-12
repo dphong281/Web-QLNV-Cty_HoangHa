@@ -13,6 +13,7 @@ import Kho from './pages/Kho'
 import KhachHang from './pages/KhachHang'
 import TaiKhoan from './pages/TaiKhoan'
 import CaiDat from './pages/CaiDat'
+import NhatKy from './pages/NhatKy'
 
 export default function App() {
   const { user, loading } = useAuth()
@@ -42,6 +43,7 @@ export default function App() {
         <Route path="/kho" element={<Kho />} />
         <Route path="/khach-hang" element={<KhachHang />} />
         <Route path="/tai-khoan" element={<TaiKhoan />} />
+        <Route path="/nhat-ky" element={<NhatKy />} />
         <Route path="/cai-dat" element={<CaiDat />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

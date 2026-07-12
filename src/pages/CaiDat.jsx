@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { getAllDonVi, createDonVi, getAllLoaiCa, createLoaiCa } from '../lib/shiftQueries'
-import { getAllSettings, setValue } from '../lib/settingsQueries'
-import { Card, Button, Badge, Input, Select, Modal, LoadingState, EmptyState } from '../components/ui'
+import { getAllSettings, setValue, exportAllDataForBackup } from '../lib/settingsQueries'
+import { Card, Button, Badge, Input, Select, Modal, LoadingState, EmptyState, ErrorState } from '../components/ui'
 
 export default function CaiDat() {
   const { isAdmin } = useAuth()
@@ -21,6 +21,8 @@ export default function CaiDat() {
         <DonViSection readOnly={!isAdmin} />
         <LoaiCaSection readOnly={!isAdmin} />
         <NguongSection readOnly={!isAdmin} />
+        {isAdmin && <LichBackupSection />}
+        {isAdmin && <SaoLuuThuCongSection />}
       </div>
     </div>
   )
@@ -203,6 +205,106 @@ function NguongSection({ readOnly }) {
         {!readOnly && <Button type="submit" variant="accent" disabled={saving}>{saving ? 'Đang lưu...' : 'Lưu'}</Button>}
         {message && <span className={`text-sm ${message.type === 'error' ? 'text-[var(--color-danger)]' : 'text-[var(--color-good)]'}`}>{message.text}</span>}
       </form>
+    </Card>
+  )
+}
+
+// ============================================================
+// LỊCH SAO LƯU LÊN GOOGLE DRIVE
+// ============================================================
+function LichBackupSection() {
+  const [days, setDays] = useState('7')
+  const [lastRun, setLastRun] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [message, setMessage] = useState(null)
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const all = await getAllSettings()
+        const map = Object.fromEntries(all.map((s) => [s.khoa, s.gia_tri]))
+        if (map.backup_interval_days) setDays(map.backup_interval_days)
+        if (map.backup_last_run_at) setLastRun(map.backup_last_run_at)
+      } finally {
+        setLoading(false)
+      }
+    })()
+  }, [])
+
+  async function handleSave(e) {
+    e.preventDefault()
+    setSaving(true)
+    setMessage(null)
+    try {
+      await setValue('backup_interval_days', days, 'Số ngày giữa các lần sao lưu tự động lên Google Drive')
+      setMessage({ type: 'success', text: 'Đã lưu.' })
+    } catch (err) {
+      setMessage({ type: 'error', text: err.message })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (loading) return <Card className="p-5"><LoadingState /></Card>
+
+  return (
+    <Card className="p-5">
+      <h3 className="font-display font-semibold text-[var(--color-ink)] mb-1">Lịch sao lưu lên Google Drive</h3>
+      <p className="text-sm text-[var(--color-text-muted)] mb-4">
+        Cần thiết lập GitHub Actions + Google Drive Service Account trước — xem README mục Backup.
+      </p>
+      <form onSubmit={handleSave} className="flex items-end gap-3 mb-3">
+        <Input label="Số ngày giữa các lần backup" type="number" min={1} value={days} onChange={(e) => setDays(e.target.value)} className="max-w-[180px]" />
+        <Button type="submit" variant="accent" disabled={saving}>{saving ? 'Đang lưu...' : 'Lưu'}</Button>
+        {message && <span className={`text-sm ${message.type === 'error' ? 'text-[var(--color-danger)]' : 'text-[var(--color-good)]'}`}>{message.text}</span>}
+      </form>
+      <p className="text-xs text-[var(--color-text-muted)]">
+        Lần backup gần nhất: {lastRun ? new Date(lastRun).toLocaleString('vi-VN') : 'Chưa có lần nào'}
+      </p>
+    </Card>
+  )
+}
+
+// ============================================================
+// SAO LƯU DỮ LIỆU THỦ CÔNG
+// ============================================================
+function SaoLuuThuCongSection() {
+  const [exporting, setExporting] = useState(false)
+  const [error, setError] = useState(null)
+
+  async function handleExport() {
+    setExporting(true)
+    setError(null)
+    try {
+      const data = await exportAllDataForBackup()
+      const json = JSON.stringify(data, null, 2)
+      const blob = new Blob([json], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `qlnv-backup-${new Date().toISOString().slice(0, 10)}.json`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  return (
+    <Card className="p-5">
+      <h3 className="font-display font-semibold text-[var(--color-ink)] mb-1">Sao lưu dữ liệu thủ công</h3>
+      <p className="text-sm text-[var(--color-text-muted)] mb-4">
+        Tải toàn bộ dữ liệu hiện tại về máy dưới dạng file JSON — dùng trước khi làm thao tác rủi ro.
+      </p>
+      <div className="flex items-center gap-3">
+        <Button variant="accent" onClick={handleExport} disabled={exporting}>{exporting ? 'Đang xuất...' : '⬇ Tải file backup (.json)'}</Button>
+        {error && <ErrorState message={error} />}
+      </div>
     </Card>
   )
 }

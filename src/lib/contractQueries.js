@@ -122,7 +122,14 @@ export async function createContractLogic({ maNv, loaiHd, ngayKy, ngayHieuLuc, n
   return decryptContract(res.data)
 }
 
-export async function updateContractLogic(maHd, { loaiHd, ngayHetHan, luongCoBan, phuCapDocHai = 0, phuCapTrachNhiem = 0 }) {
+export class ConflictError extends Error {
+  constructor() {
+    super('Hợp đồng này đã bị người khác thay đổi kể từ khi bạn mở form. Vui lòng tải lại rồi thử lại.')
+    this.name = 'ConflictError'
+  }
+}
+
+export async function updateContractLogic(maHd, { loaiHd, ngayHetHan, luongCoBan, phuCapDocHai = 0, phuCapTrachNhiem = 0, expectedUpdatedAt }) {
   const contractRes = await supabase.from('hop_dong').select('*').eq('ma_hd', maHd).single()
   if (contractRes.error) throw contractRes.error
   const contract = contractRes.data
@@ -137,8 +144,11 @@ export async function updateContractLogic(maHd, { loaiHd, ngayHetHan, luongCoBan
     phu_cap_doc_hai: await encryptValue(Number(phuCapDocHai) || 0),
     phu_cap_trach_nhiem: await encryptValue(Number(phuCapTrachNhiem) || 0),
   }
-  const res = await supabase.from('hop_dong').update(data).eq('ma_hd', maHd).select().single()
+  let query = supabase.from('hop_dong').update(data).eq('ma_hd', maHd)
+  if (expectedUpdatedAt) query = query.eq('updated_at', expectedUpdatedAt)
+  const res = await query.select().maybeSingle()
   if (res.error) throw res.error
+  if (!res.data && expectedUpdatedAt) throw new ConflictError()
 
   await upsertHoSoLuong(contract.ma_nv, {
     luong_co_ban: luong,
