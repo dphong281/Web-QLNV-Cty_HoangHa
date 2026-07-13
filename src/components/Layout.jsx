@@ -11,15 +11,28 @@ const NAV_ITEMS = [
   { to: '/chuyen-hang', label: 'Chuyến hàng' },
   { to: '/kho', label: 'Kho' },
   { to: '/khach-hang', label: 'Khách hàng' },
-  { to: '/tai-khoan', label: 'Tài khoản', adminOnly: true },
+  { to: '/tai-khoan', label: 'Tài khoản' },
   { to: '/nhat-ky', label: 'Nhật ký hoạt động' },
   { to: '/cai-dat', label: 'Cài đặt' },
 ]
 
-export default function Layout({ children }) {
-  const { hoTen, isAdmin, phongBan, chucVu, signOut } = useAuth()
+// Phòng Hành chính (nhân viên lẫn trưởng phòng) chỉ được xem đúng 4 module này
+// + Cài đặt (để tự đổi mật khẩu). Trưởng phòng có thêm Tài khoản (để tạo tài
+// khoản cho đúng phòng ban mình — logic giới hạn theo phòng ban nằm ở TaiKhoan.jsx).
+// Các phòng ban khác (kế toán/khai thác/cửa hàng) CHƯA giới hạn — làm sau.
+export const HANH_CHINH_ALLOWED = ['/', '/nhan-su', '/hop-dong', '/luong', '/cai-dat']
 
-  const visibleItems = NAV_ITEMS.filter((item) => !item.adminOnly || isAdmin)
+export function isItemVisible(item, { isAdmin, phongBan, isTruongPhong }) {
+  if (isAdmin) return true
+  if (item.to === '/tai-khoan') return isTruongPhong
+  if (phongBan === 'hanh_chinh') return HANH_CHINH_ALLOWED.includes(item.to)
+  return true
+}
+
+export default function Layout({ children }) {
+  const { hoTen, isAdmin, phongBan, chucVu, isTruongPhong, signOut } = useAuth()
+
+  const visibleItems = NAV_ITEMS.filter((item) => isItemVisible(item, { isAdmin, phongBan, isTruongPhong }))
 
   return (
     <div className="h-screen flex overflow-hidden">

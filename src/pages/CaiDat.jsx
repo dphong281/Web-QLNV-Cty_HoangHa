@@ -1,23 +1,25 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
+import { supabase } from '../lib/supabase'
 import { getAllDonVi, createDonVi, getAllLoaiCa, createLoaiCa } from '../lib/shiftQueries'
 import { getAllSettings, setValue, exportAllDataForBackup } from '../lib/settingsQueries'
 import { Card, Button, Badge, Input, Select, Modal, LoadingState, EmptyState, ErrorState } from '../components/ui'
 
 export default function CaiDat() {
-  const { isAdmin } = useAuth()
+  const { isAdmin, user } = useAuth()
   return (
     <div>
       <div className="mb-6">
         <h1 className="font-display text-2xl font-semibold text-[var(--color-ink)]">Cài đặt</h1>
-        <p className="text-sm text-[var(--color-text-muted)] mt-1">Đơn vị, loại ca, ngưỡng hệ thống</p>
+        <p className="text-sm text-[var(--color-text-muted)] mt-1">Hồ sơ cá nhân và cấu hình hệ thống</p>
       </div>
       {!isAdmin && (
         <Card className="p-5 mb-6 text-sm text-[var(--color-text-muted)]">
-          Chỉ Admin mới sửa được cài đặt hệ thống — bạn có thể xem nhưng không sửa được.
+          Chỉ Admin mới sửa được cấu hình hệ thống bên dưới — bạn vẫn đổi được hồ sơ/mật khẩu của chính mình.
         </Card>
       )}
       <div className="space-y-6">
+        <HoSoCaNhanSection userId={user.id} />
         <DonViSection readOnly={!isAdmin} />
         <LoaiCaSection readOnly={!isAdmin} />
         <NguongSection readOnly={!isAdmin} />
@@ -25,6 +27,82 @@ export default function CaiDat() {
         {isAdmin && <SaoLuuThuCongSection />}
       </div>
     </div>
+  )
+}
+
+// ============================================================
+// HỒ SƠ CÁ NHÂN — ai cũng có, chỉ sửa được của chính mình
+// ============================================================
+function HoSoCaNhanSection({ userId }) {
+  const [hoTen, setHoTen] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [message, setMessage] = useState(null)
+
+  const [newPassword, setNewPassword] = useState('')
+  const [changingPw, setChangingPw] = useState(false)
+  const [pwMessage, setPwMessage] = useState(null)
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase.from('tai_khoan').select('ho_ten').eq('user_id', userId).single()
+      if (data) setHoTen(data.ho_ten || '')
+      setLoading(false)
+    })()
+  }, [userId])
+
+  async function handleSaveProfile(e) {
+    e.preventDefault()
+    setSaving(true)
+    setMessage(null)
+    const { error } = await supabase.from('tai_khoan').update({ ho_ten: hoTen }).eq('user_id', userId)
+    setSaving(false)
+    setMessage(error ? { type: 'error', text: error.message } : { type: 'success', text: 'Đã lưu.' })
+  }
+
+  async function handleChangePassword(e) {
+    e.preventDefault()
+    if (newPassword.length < 6) {
+      setPwMessage({ type: 'error', text: 'Mật khẩu cần tối thiểu 6 ký tự.' })
+      return
+    }
+    setChangingPw(true)
+    setPwMessage(null)
+    const { error } = await supabase.auth.updateUser({ password: newPassword })
+    setChangingPw(false)
+    if (error) setPwMessage({ type: 'error', text: error.message })
+    else {
+      setPwMessage({ type: 'success', text: 'Đã đổi mật khẩu.' })
+      setNewPassword('')
+    }
+  }
+
+  if (loading) return <Card className="p-5"><LoadingState /></Card>
+
+  return (
+    <Card className="p-5">
+      <h3 className="font-display font-semibold text-[var(--color-ink)] mb-4">Hồ sơ của tôi</h3>
+      <form onSubmit={handleSaveProfile} className="flex items-end gap-3 mb-4">
+        <Input label="Họ tên" value={hoTen} onChange={(e) => setHoTen(e.target.value)} className="max-w-xs" />
+        <Button type="submit" variant="accent" disabled={saving}>{saving ? 'Đang lưu...' : 'Lưu hồ sơ'}</Button>
+        {message && <span className={`text-sm ${message.type === 'error' ? 'text-[var(--color-danger)]' : 'text-[var(--color-good)]'}`}>{message.text}</span>}
+      </form>
+
+      <div className="border-t border-[var(--color-line)] pt-4">
+        <form onSubmit={handleChangePassword} className="flex items-end gap-3">
+          <Input
+            label="Đổi mật khẩu"
+            type="password"
+            placeholder="Mật khẩu mới (tối thiểu 6 ký tự)"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            className="max-w-xs"
+          />
+          <Button type="submit" variant="ghost" disabled={changingPw || !newPassword}>{changingPw ? 'Đang đổi...' : 'Đổi mật khẩu'}</Button>
+          {pwMessage && <span className={`text-sm ${pwMessage.type === 'error' ? 'text-[var(--color-danger)]' : 'text-[var(--color-good)]'}`}>{pwMessage.text}</span>}
+        </form>
+      </div>
+    </Card>
   )
 }
 
