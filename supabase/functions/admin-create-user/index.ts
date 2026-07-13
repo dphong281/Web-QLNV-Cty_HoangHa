@@ -48,14 +48,26 @@ const TRUONG_PHONG_CHUC_VU = [
   "truong_ca_cua_hang",
 ];
 
+// CORS - BẮT BUỘC vì function này giờ được gọi từ trình duyệt (web app),
+// khác với trước đây chỉ gọi từ app desktop Python (không bị chặn CORS
+// vì CORS chỉ áp dụng cho trình duyệt).
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...corsHeaders },
   });
 }
 
 Deno.serve(async (req: Request) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
+
   if (req.method !== "POST") {
     return jsonResponse({ error: "Chỉ hỗ trợ phương thức POST." }, 405);
   }
