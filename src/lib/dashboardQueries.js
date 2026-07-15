@@ -31,9 +31,10 @@ export async function getChiSoChungVaCanhBao() {
   const byTrangThai = {}
   const byGioiTinh = {}
   for (const r of rows) {
+    const gioiTinh = await decryptValue(r['Giới tính'])
     if (r['Trạng thái']) byTrangThai[r['Trạng thái']] = (byTrangThai[r['Trạng thái']] || 0) + 1
-    if (r['Giới tính'] && r['Trạng thái'] === 'DangLamViec') {
-      byGioiTinh[r['Giới tính']] = (byGioiTinh[r['Giới tính']] || 0) + 1
+    if (gioiTinh && r['Trạng thái'] === 'DangLamViec') {
+      byGioiTinh[gioiTinh] = (byGioiTinh[gioiTinh] || 0) + 1
     }
   }
 
@@ -92,7 +93,8 @@ export async function getPhanBoVaThieuThongTin() {
 
   for (const r of rows) {
     if (r['Nơi làm việc']) byDonVi[r['Nơi làm việc']] = (byDonVi[r['Nơi làm việc']] || 0) + 1
-    if (r['Ngạch']) byNgach[r['Ngạch']] = (byNgach[r['Ngạch']] || 0) + 1
+    const ngach = await decryptValue(r['Ngạch'])
+    if (ngach) byNgach[ngach] = (byNgach[ngach] || 0) + 1
     const soDtDecrypted = await decryptValue(r['Số ĐT'])
     if (!soDtDecrypted || !r['Khối']) thieuThongTinRaw.push(r)
   }

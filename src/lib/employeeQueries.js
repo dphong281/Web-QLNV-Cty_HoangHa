@@ -2,6 +2,34 @@ import { supabase } from './supabase'
 import { encryptValue, decryptValue } from './fernetCrypto'
 
 // ---------- KHOÁ ĐỒNG THỜI (optimistic lock) ----------
+// Mã hoá lại TOÀN BỘ nhân viên hiện có — dùng 1 lần sau khi mở rộng danh sách trường mã hoá,
+// để dữ liệu cũ (đang ở dạng chữ thường) được mã hoá theo chuẩn mới. An toàn để chạy nhiều lần:
+// decryptValue() tự nhận biết dữ liệu chưa mã hoá và trả nguyên văn, nên đọc-rồi-ghi-lại
+// không làm mất dữ liệu, chỉ đổi từ dạng chữ thường sang dạng đã mã hoá.
+export async function reencryptAllEmployees(onProgress) {
+  const res = await supabase.from('nhan_vien').select(COLUMNS)
+  if (res.error) throw res.error
+  const total = res.data.length
+  let done = 0
+  for (const raw of res.data) {
+    const emp = await decryptEmployee(raw)
+    const payload = {}
+    for (const f of ENCRYPTED_FIELDS) payload[f] = emp[f]
+    const upd = await supabase.from('nhan_vien').update(await encryptPayload(payload)).eq('Mã NV', emp['Mã NV'])
+    if (upd.error) throw new Error(`${emp['Mã NV']}: ${upd.error.message}`)
+    done += 1
+    if (onProgress) onProgress(done, total)
+  }
+  return { total }
+}
+
+async function encryptPayload(payload) {
+  const out = {}
+  for (const [k, v] of Object.entries(payload)) out[k] = await encryptValue(v)
+  return out
+}
+
+
 export class ConflictError extends Error {
   constructor() {
     super('Dữ liệu này đã bị người khác thay đổi kể từ khi bạn mở form. Vui lòng tải lại rồi thử lại.')
@@ -11,8 +39,19 @@ export class ConflictError extends Error {
 
 const COLUMNS = '"Mã NV", "Họ tên", "Ngày sinh", "Giới tính", "Số CCCD", "Ngày cấp CCCD", "Nơi cấp", "Mã số thuế", "Số BHXH", "Tình trạng hôn nhân", "Quốc tịch", "Địa chỉ thường trú", "Địa chỉ hiện tại", "Số ĐT", "Email", "Email công ty", "Người liên hệ khẩn cấp", "SĐT khẩn cấp", "Khối", "Chức vụ", "Cấp bậc", "Nơi làm việc", "Ngạch", "Quản lý trực tiếp", "Ngày vào Cty", "Ngày nghỉ việc", "Trạng thái", "Quyết định đi kèm", "Số người phụ thuộc", "Số tài khoản", "Ngân hàng", "Trình độ", "Chuyên ngành", "Hồ sơ giấy tờ", "Ghi chú", "Ghi chú nghỉ hưu", "Thông tin học vấn", "Thông tin gia đình", updated_at'
 
-// Các trường nhạy cảm được mã hoá Fernet ở tầng ứng dụng trước khi ghi xuống DB.
-const ENCRYPTED_FIELDS = ['Số ĐT', 'Mã số thuế', 'Số BHXH', 'Số tài khoản']
+// Mã hoá TOÀN BỘ thông tin cá nhân — chỉ chừa lại các trường cần cho tìm kiếm/lọc:
+// Mã NV, Họ tên, Khối, Nơi làm việc, Trạng thái (+ updated_at cho khoá đồng thời).
+// Ghi chú: "Ngày vào Cty"/"Ngày nghỉ việc" (cột kiểu date) và "Số người phụ thuộc" (kiểu số)
+// và "Hồ sơ giấy tờ" (kiểu jsonb) CHƯA mã hoá được vì cần đổi kiểu cột trước — xem ghi chú cuối file.
+const ENCRYPTED_FIELDS = [
+  'Ngày sinh', 'Giới tính', 'Số CCCD', 'Ngày cấp CCCD', 'Nơi cấp',
+  'Mã số thuế', 'Số BHXH', 'Tình trạng hôn nhân', 'Quốc tịch',
+  'Địa chỉ thường trú', 'Địa chỉ hiện tại',
+  'Số ĐT', 'Email', 'Email công ty', 'Người liên hệ khẩn cấp', 'SĐT khẩn cấp',
+  'Chức vụ', 'Cấp bậc', 'Ngạch', 'Quản lý trực tiếp', 'Quyết định đi kèm',
+  'Số tài khoản', 'Ngân hàng', 'Trình độ', 'Chuyên ngành',
+  'Ghi chú', 'Ghi chú nghỉ hưu', 'Thông tin học vấn', 'Thông tin gia đình',
+]
 
 async function decryptEmployee(e) {
   const result = { ...e }

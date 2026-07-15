@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
 import { getAllDonVi, createDonVi, getAllLoaiCa, createLoaiCa } from '../lib/shiftQueries'
 import { getAllSettings, setValue, exportAllDataForBackup } from '../lib/settingsQueries'
+import { reencryptAllEmployees } from '../lib/employeeQueries'
 import { Card, Button, Badge, Input, Select, Modal, LoadingState, EmptyState, ErrorState } from '../components/ui'
 
 export default function CaiDat() {
@@ -25,8 +26,58 @@ export default function CaiDat() {
         <NguongSection readOnly={!isAdmin} />
         {isAdmin && <LichBackupSection />}
         {isAdmin && <SaoLuuThuCongSection />}
+        {isAdmin && <MaHoaLaiSection />}
       </div>
     </div>
+  )
+}
+
+// ============================================================
+// MÃ HOÁ LẠI TOÀN BỘ NHÂN VIÊN — chạy 1 lần sau khi mở rộng danh sách trường mã hoá,
+// để nhân viên nhập/sửa từ trước cũng được mã hoá theo chuẩn mới (an toàn chạy nhiều lần).
+// ============================================================
+function MaHoaLaiSection() {
+  const [running, setRunning] = useState(false)
+  const [progress, setProgress] = useState(null) // { done, total }
+  const [error, setError] = useState(null)
+  const [done, setDone] = useState(false)
+
+  async function handleRun() {
+    if (!confirm('Mã hoá lại toàn bộ thông tin cá nhân nhân viên (CCCD, ngày sinh, địa chỉ, SĐT...)? Nên tải bản sao lưu trước khi chạy.')) return
+    setRunning(true)
+    setError(null)
+    setDone(false)
+    try {
+      const result = await reencryptAllEmployees((d, total) => setProgress({ done: d, total }))
+      setDone(true)
+      setProgress({ done: result.total, total: result.total })
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setRunning(false)
+    }
+  }
+
+  return (
+    <Card className="p-5">
+      <h3 className="font-display font-semibold text-[var(--color-ink)] mb-1">Mã hoá lại thông tin nhân viên</h3>
+      <p className="text-sm text-[var(--color-text-muted)] mb-4">
+        Chạy 1 lần để mã hoá các trường thông tin cá nhân (ngày sinh, CCCD, địa chỉ, SĐT, email...) của những
+        nhân viên đã nhập từ trước. Chỉ Mã NV, Họ tên, Khối, Nơi làm việc, Trạng thái được giữ ở dạng đọc được
+        để tìm kiếm/lọc — phần còn lại sẽ được mã hoá. An toàn để chạy lại nhiều lần.
+      </p>
+      {progress && (
+        <div className="mb-4">
+          <div className="h-2 rounded-full bg-black/5 overflow-hidden mb-1">
+            <div className="h-full rounded-full bg-[var(--color-accent)] transition-all" style={{ width: `${(progress.done / progress.total) * 100}%` }} />
+          </div>
+          <div className="text-xs text-[var(--color-text-muted)]">{progress.done}/{progress.total} nhân viên</div>
+        </div>
+      )}
+      {done && <div className="text-sm text-[var(--color-good)] mb-3">Đã mã hoá lại xong toàn bộ.</div>}
+      {error && <ErrorState message={error} />}
+      <Button variant="accent" onClick={handleRun} disabled={running}>{running ? 'Đang mã hoá...' : 'Mã hoá lại toàn bộ'}</Button>
+    </Card>
   )
 }
 

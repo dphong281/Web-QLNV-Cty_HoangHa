@@ -106,7 +106,10 @@ export async function getContractsTable({ keyword, khoi, loaiHd, lanThu, trangTh
   const maNvList = [...new Set(res.data.map((c) => c.ma_nv))]
   const nvRes = await supabase.from('nhan_vien').select('"Mã NV", "Họ tên", "Khối", "Chức vụ"').in('Mã NV', maNvList)
   if (nvRes.error) throw nvRes.error
-  const nvMap = Object.fromEntries(nvRes.data.map((n) => [n['Mã NV'], n]))
+  const nvMap = {}
+  for (const n of nvRes.data) {
+    nvMap[n['Mã NV']] = { ...n, 'Chức vụ': await decryptValue(n['Chức vụ']) }
+  }
 
   let contracts = await Promise.all(res.data.map(async (c) => {
     const decrypted = await decryptContract(c)

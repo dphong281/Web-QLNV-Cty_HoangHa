@@ -1,10 +1,10 @@
 import { supabase } from './supabase'
+import { decryptValue } from './fernetCrypto'
 import { BO_PHAN_OPTIONS } from './danhMuc'
+import { parseFlexibleDate } from './format'
 
 function parseDate(v) {
-  if (!v) return null
-  const d = new Date(v)
-  return Number.isNaN(d.getTime()) ? null : d
+  return parseFlexibleDate(v)
 }
 
 // ---------- SINH NHẬT ----------
@@ -21,7 +21,7 @@ export async function getBirthdays() {
 
   const withBirthday = []
   for (const r of res.data) {
-    const birth = parseDate(r['Ngày sinh'])
+    const birth = parseDate(await decryptValue(r['Ngày sinh']))
     if (!birth) continue
     let snNamNay = new Date(today.getFullYear(), birth.getMonth(), birth.getDate())
     let conLai = Math.round((snNamNay - today) / 86400000)
