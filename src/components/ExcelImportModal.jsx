@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { readExcelRows, detectHeaderRow } from '../lib/excelImport'
+import { readAllSheets, detectBestSheet } from '../lib/excelImport'
 import { Button, Modal, ErrorState } from './ui'
 
 export default function ExcelImportModal({
@@ -36,17 +36,18 @@ export default function ExcelImportModal({
     setFileName(file.name)
     setResult(null)
     try {
-      const rawRows = await readExcelRows(file)
-      const { rowIndex, count, colMap } = detectHeaderRow(rawRows, synonyms)
+      const sheets = await readAllSheets(file)
+      const best = detectBestSheet(sheets, synonyms)
+      const { sheetName, rowIndex, count, colMap, rows: rawRows } = best
 
       if (count === 0) {
-        setError(`Đã dò ${Math.min(15, rawRows.length)} dòng đầu của file nhưng không nhận diện được cột nào khớp với hệ thống. Kiểm tra lại tên cột trong file Excel.`)
+        setError(`Đã dò qua ${sheets.length} sheet trong file (mỗi sheet dò 15 dòng đầu) nhưng không nhận diện được cột nào khớp với hệ thống. Kiểm tra lại tên cột trong file Excel.`)
         setDetected(null)
         return
       }
       const missing = requiredKeys.filter((k) => !(k in colMap))
       if (missing.length) {
-        setError(`Đã tự nhận diện dòng tiêu đề là dòng số ${rowIndex + 1} trong file, nhưng thiếu cột bắt buộc: ${missing.join(', ')}.`)
+        setError(`Đã tự nhận diện sheet "${sheetName}", dòng tiêu đề là dòng số ${rowIndex + 1}, nhưng thiếu cột bắt buộc: ${missing.join(', ')}.`)
         setDetected(null)
         return
       }
@@ -54,7 +55,7 @@ export default function ExcelImportModal({
       const dataRows = rawRows.slice(rowIndex + 1).filter((r) => r && r.length)
       const mappedRows = dataRows.map((r) => buildRow(r, colMap)).filter(Boolean)
 
-      setDetected({ rowIndex, count, colMap, mappedRows })
+      setDetected({ sheetName, rowIndex, count, colMap, mappedRows })
     } catch (err) {
       setError('Lỗi đọc file Excel: ' + err.message)
     }
@@ -91,7 +92,7 @@ export default function ExcelImportModal({
         {detected && !result && (
           <div className="space-y-3">
             <div className="rounded-lg bg-[var(--color-good)]/8 border border-[var(--color-good)]/20 text-sm px-3 py-2 text-[var(--color-good)]">
-              Đã tự nhận diện dòng tiêu đề là dòng số {detected.rowIndex + 1} trong file — nhận diện được {detected.count}/{allHeaders.length} cột, tìm thấy {detected.mappedRows.length} dòng dữ liệu hợp lệ.
+              Đã tự nhận diện sheet "{detected.sheetName}", dòng tiêu đề là dòng số {detected.rowIndex + 1} — nhận diện được {detected.count}/{allHeaders.length} cột, tìm thấy {detected.mappedRows.length} dòng dữ liệu hợp lệ.
             </div>
             {notFoundHeaders.length > 0 && (
               <div className="rounded-lg bg-[var(--color-warning)]/10 border border-[var(--color-warning)]/25 text-sm px-3 py-2 text-[var(--color-warning)]">

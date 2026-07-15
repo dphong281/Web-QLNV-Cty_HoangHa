@@ -10,11 +10,21 @@ export function normalizeHeader(text) {
     .replace(/\s+/g, ' ')
 }
 
-export async function readExcelRows(file) {
+// Đọc TẤT CẢ sheet trong file (không chỉ sheet đầu) — file thật của công ty có nhiều sheet
+// phụ (Dashboard, TheoDoi, DanhMuc, HĐTV_VP...) nên không thể giả định NhanVien luôn là sheet đầu.
+export async function readAllSheets(file) {
   const buffer = await file.arrayBuffer()
   const wb = XLSX.read(buffer, { type: 'array', cellDates: true })
-  const sheet = wb.Sheets[wb.SheetNames[0]]
-  return XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true, defval: null })
+  return wb.SheetNames.map((name) => ({
+    name,
+    rows: XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, raw: true, defval: null }),
+  }))
+}
+
+// Giữ lại cho tương thích ngược — chỉ đọc sheet đầu tiên.
+export async function readExcelRows(file) {
+  const sheets = await readAllSheets(file)
+  return sheets[0]?.rows || []
 }
 
 export function detectHeaderRow(rows, synonyms, maxRowsToScan = 15) {
@@ -39,6 +49,20 @@ export function detectHeaderRow(rows, synonyms, maxRowsToScan = 15) {
     }
     const count = Object.keys(colMap).length
     if (count > best.count) best = { count, rowIndex: r, colMap }
+  }
+  return best
+}
+
+// Dò header tốt nhất trên TỪNG sheet, trả về sheet có số cột khớp nhiều nhất.
+// Tránh trường hợp sheet cần tìm (VD "NhanVien") không phải sheet đầu tiên trong file
+// (file thật thường có thêm Dashboard, TheoDoi, DanhMuc... ở trước).
+export function detectBestSheet(sheets, synonyms, maxRowsToScan = 15) {
+  let best = null
+  for (const sheet of sheets) {
+    const detected = detectHeaderRow(sheet.rows, synonyms, maxRowsToScan)
+    if (!best || detected.count > best.count) {
+      best = { ...detected, sheetName: sheet.name, rows: sheet.rows }
+    }
   }
   return best
 }
