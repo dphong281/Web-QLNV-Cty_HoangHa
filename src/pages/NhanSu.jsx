@@ -4,7 +4,7 @@ import {
 } from '../lib/employeeQueries'
 import { KHOI_LABELS, TRANG_THAI_NV_LABELS, TRANG_THAI_NV_COLORS } from '../lib/format'
 import { NHAN_VIEN_IMPORT_SYNONYMS, NHAN_VIEN_REQUIRED, NHAN_VIEN_HEADERS } from '../lib/importSynonyms'
-import { cellValue, cellDateToIso, exportToExcel } from '../lib/excelImport'
+import { cellValue, cellDateToIso, cellDateToDDMMYYYY, exportToExcel } from '../lib/excelImport'
 import { importContractStagesFromExcel } from '../lib/contractQueries'
 import { getRetirementWarning } from '../lib/retirement'
 import { computeHoSoCompletion, completionColor } from '../lib/hoSoChecklist'
@@ -158,9 +158,10 @@ export default function NhanSu() {
       const soHd = cellValue(row, colMap, def.soHd, '')
       const ngayHieuLuc = cellDateToIso(row, colMap, def.batDau)
       const ngayKy = cellDateToIso(row, colMap, def.ngayKy) || ngayHieuLuc
-      if (!soHd && !ngayHieuLuc) continue // giai đoạn này không có dữ liệu trong file
+      if (!soHd && !ngayHieuLuc && !ngayKy) continue // giai đoạn này không có dữ liệu trong file
+      if (!ngayKy) continue // có số HĐ nhưng thiếu cả ngày ký lẫn ngày bắt đầu -> không đủ để tạo hợp đồng, bỏ qua
       stages.push({
-        loaiHd: def.loaiHd, lanThu: def.lanThu, soHd: soHd || null, ngayKy, ngayHieuLuc,
+        loaiHd: def.loaiHd, lanThu: def.lanThu, soHd: soHd || null, ngayKy, ngayHieuLuc: ngayHieuLuc || ngayKy,
         ngayHetHan: def.ketThuc ? cellDateToIso(row, colMap, def.ketThuc) : '',
         ketQuaDanhGia: def.ketQua ? cellValue(row, colMap, def.ketQua, '') : undefined,
       })
@@ -174,15 +175,20 @@ export default function NhanSu() {
     }
   }
 
+  // Các cột lưu ngày dạng CHỮ trong DB (không phải cột date thật) — nếu không xử lý riêng,
+  // ô Excel định dạng ngày sẽ bị lưu thành chuỗi rác kiểu "Fri Jul 23 2021 00:00:00 GMT+0700...".
+  const TEXT_DATE_FIELDS = ['Ngày sinh', 'Ngày cấp CCCD']
+
   function buildImportRow(row, colMap) {
     const maNv = String(cellValue(row, colMap, 'Mã NV')).trim().toUpperCase()
     if (!maNv) return null
     const data = { 'Mã NV': maNv }
     for (const h of NHAN_VIEN_HEADERS) {
-      if (h === 'Mã NV' || DATE_FIELDS.includes(h)) continue
+      if (h === 'Mã NV' || DATE_FIELDS.includes(h) || TEXT_DATE_FIELDS.includes(h)) continue
       const raw = String(cellValue(row, colMap, h, '')).trim()
       data[h] = NUMBER_FIELDS.includes(h) ? (Number(raw) || 0) : raw
     }
+    for (const h of TEXT_DATE_FIELDS) data[h] = cellDateToDDMMYYYY(row, colMap, h)
     data['Giới tính'] = data['Giới tính'] || 'Nam'
     data['Khối'] = KHOI_LABEL_TO_CODE[data['Khối']] || data['Khối'] || 'VanPhong'
     data['Trạng thái'] = TRANG_THAI_LABEL_TO_CODE[data['Trạng thái']] || data['Trạng thái'] || 'DangLamViec'

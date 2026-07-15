@@ -1,3 +1,5 @@
+import { parseFlexibleDate } from './format'
+
 // Tính tuổi nghỉ hưu theo lộ trình Nghị định 135/2020/NĐ-CP:
 // - Nam: 2021 = 60 tuổi 3 tháng, mỗi năm sau +3 tháng, đủ 62 tuổi từ năm 2028 trở đi.
 // - Nữ:  2021 = 55 tuổi 4 tháng, mỗi năm sau +4 tháng, đủ 60 tuổi từ năm 2035 trở đi.
@@ -40,9 +42,7 @@ function addYearsMonths(date, years, months) {
 }
 
 function parseDate(value) {
-  if (!value) return null
-  const d = new Date(value)
-  return Number.isNaN(d.getTime()) ? null : d
+  return parseFlexibleDate(value)
 }
 
 /** Tuổi hiện tại (số nguyên) từ ngày sinh. */

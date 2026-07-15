@@ -255,6 +255,7 @@ export async function importContractStagesFromExcel(rows) {
 
       for (let i = 0; i < row.stages.length; i++) {
         const stage = row.stages[i]
+        if (!stage.ngayKy) continue // an toàn: không đủ ngày để tạo hợp đồng
         const isLast = i === row.stages.length - 1
         const match = existing.find((c) => c.loai_hd === stage.loaiHd && (c.lan_thu ?? null) === (stage.lanThu ?? null))
 

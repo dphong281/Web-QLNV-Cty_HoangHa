@@ -7,7 +7,9 @@ export function normalizeHeader(text) {
     .replace(/đ/gi, 'd')
     .toLowerCase()
     .trim()
+    .replace(/[/_\-.,()]+/g, ' ') // "CCCD/CMND" -> "cccd cmnd", "so_dt" đã có nhưng thêm an toàn
     .replace(/\s+/g, ' ')
+    .trim()
 }
 
 // Đọc TẤT CẢ sheet trong file (không chỉ sheet đầu) — file thật của công ty có nhiều sheet
@@ -89,6 +91,16 @@ export function cellDateToIso(row, colMap, standardKey) {
   }
   if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return text
   return ''
+}
+
+// Dùng cho các cột lưu ngày dạng CHỮ "dd/mm/yyyy" trong DB (VD: Ngày sinh, Ngày cấp CCCD) —
+// khác với cellDateToIso (dùng cho cột kiểu date thật). Nếu không parse được, trả '' thay vì
+// chuỗi rác kiểu Date.toString().
+export function cellDateToDDMMYYYY(row, colMap, standardKey) {
+  const iso = cellDateToIso(row, colMap, standardKey)
+  if (!iso) return ''
+  const [y, mo, d] = iso.split('-')
+  return `${d}/${mo}/${y}`
 }
 
 export function cellTimeToHm(row, colMap, standardKey) {

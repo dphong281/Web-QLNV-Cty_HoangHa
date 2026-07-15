@@ -3,10 +3,31 @@ export function formatCurrency(value) {
   return n.toLocaleString('vi-VN') + ' đ'
 }
 
+// Parse ngày một cách chắc chắn, tránh trình duyệt hiểu nhầm "23/07/2021" (dd/mm/yyyy) thành
+// mm/dd/yyyy — với ngày <=12 sẽ bị hiểu SAI âm thầm (không báo lỗi) nếu dùng thẳng `new Date(str)`.
+export function parseFlexibleDate(value) {
+  if (!value) return null
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value
+  const text = String(value).trim()
+  const dmy = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/)
+  if (dmy) {
+    const [, d, m, y] = dmy
+    const date = new Date(Number(y), Number(m) - 1, Number(d))
+    return Number.isNaN(date.getTime()) ? null : date
+  }
+  const iso = text.match(/^(\d{4})-(\d{2})-(\d{2})/)
+  if (iso) {
+    const [, y, m, d] = iso
+    const date = new Date(Number(y), Number(m) - 1, Number(d))
+    return Number.isNaN(date.getTime()) ? null : date
+  }
+  const fallback = new Date(text)
+  return Number.isNaN(fallback.getTime()) ? null : fallback
+}
+
 export function formatDate(value) {
-  if (!value) return '—'
-  const d = new Date(value)
-  if (Number.isNaN(d.getTime())) return '—'
+  const d = parseFlexibleDate(value)
+  if (!d) return '—'
   return d.toLocaleDateString('vi-VN')
 }
 

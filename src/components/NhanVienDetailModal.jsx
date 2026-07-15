@@ -55,7 +55,7 @@ export default function NhanVienDetailModal({ detail, onClose, onEdit }) {
             <Field label="Tình trạng hôn nhân">{detail['Tình trạng hôn nhân']}</Field>
             <Field label="Quốc tịch">{detail['Quốc tịch']}</Field>
             <Field label="Số CCCD">{detail['Số CCCD']}</Field>
-            <Field label="Ngày/nơi cấp">{detail['Ngày cấp CCCD'] ? `${detail['Ngày cấp CCCD']} — ${detail['Nơi cấp'] || '—'}` : null}</Field>
+            <Field label="Ngày/nơi cấp">{detail['Ngày cấp CCCD'] ? `${formatDate(detail['Ngày cấp CCCD'])} — ${detail['Nơi cấp'] || '—'}` : null}</Field>
             <Field label="Mã số thuế">{detail['Mã số thuế']}</Field>
             <Field label="Số BHXH">{detail['Số BHXH']}</Field>
             <div className="col-span-2"><Field label="Địa chỉ thường trú">{detail['Địa chỉ thường trú']}</Field></div>
