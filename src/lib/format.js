@@ -13,13 +13,17 @@ export function formatDate(value) {
 export const KHOI_LABELS = { VanPhong: 'Văn phòng', CayXang: 'Cửa hàng', TaiXe: 'Tài xế' }
 
 export const TRANG_THAI_NV_LABELS = {
+  ThuViec: 'Thử việc',
   DangLamViec: 'Đang làm việc',
   TamNghi: 'Tạm nghỉ',
+  NghiThaiSan: 'Nghỉ thai sản',
   DaNghiViec: 'Đã nghỉ việc',
 }
 export const TRANG_THAI_NV_COLORS = {
+  ThuViec: 'bg-[var(--color-accent)]/10 text-[var(--color-accent-dark)]',
   DangLamViec: 'bg-[var(--color-good)]/10 text-[var(--color-good)]',
   TamNghi: 'bg-[var(--color-warning)]/15 text-[var(--color-warning)]',
+  NghiThaiSan: 'bg-[var(--color-warning)]/15 text-[var(--color-warning)]',
   DaNghiViec: 'bg-black/5 text-[var(--color-text-muted)]',
 }
 
@@ -54,6 +58,8 @@ export const TRUONG_PHONG_CHUC_VU = [
   'truong_phong_khai_thac',
   'truong_ca_cua_hang',
 ]
+
+export const TINH_TRANG_HON_NHAN_OPTIONS = ['Độc thân', 'Đã kết hôn', 'Khác']
 
 export const LOAI_HD_LABELS = {
   ThuViec: 'Thử việc',

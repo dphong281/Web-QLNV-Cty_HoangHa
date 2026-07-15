@@ -9,7 +9,16 @@ export class ConflictError extends Error {
   }
 }
 
-const COLUMNS = '"Mã NV", "Họ tên", "Ngày sinh", "Giới tính", "Số CCCD", "Ngày cấp CCCD", "Nơi cấp", "Địa chỉ thường trú", "Số ĐT", "Email", "Khối", "Chức vụ", "Nơi làm việc", "Ngạch", "Ngày vào Cty", "Trạng thái", "Quyết định đi kèm", "Ghi chú", "Thông tin học vấn", "Thông tin gia đình", updated_at'
+const COLUMNS = '"Mã NV", "Họ tên", "Ngày sinh", "Giới tính", "Số CCCD", "Ngày cấp CCCD", "Nơi cấp", "Mã số thuế", "Số BHXH", "Tình trạng hôn nhân", "Quốc tịch", "Địa chỉ thường trú", "Địa chỉ hiện tại", "Số ĐT", "Email", "Email công ty", "Người liên hệ khẩn cấp", "SĐT khẩn cấp", "Khối", "Chức vụ", "Cấp bậc", "Nơi làm việc", "Ngạch", "Quản lý trực tiếp", "Ngày vào Cty", "Ngày nghỉ việc", "Trạng thái", "Quyết định đi kèm", "Số người phụ thuộc", "Số tài khoản", "Ngân hàng", "Trình độ", "Chuyên ngành", "Hồ sơ giấy tờ", "Ghi chú", "Ghi chú nghỉ hưu", "Thông tin học vấn", "Thông tin gia đình", updated_at'
+
+// Các trường nhạy cảm được mã hoá Fernet ở tầng ứng dụng trước khi ghi xuống DB.
+const ENCRYPTED_FIELDS = ['Số ĐT', 'Mã số thuế', 'Số BHXH', 'Số tài khoản']
+
+async function decryptEmployee(e) {
+  const result = { ...e }
+  for (const f of ENCRYPTED_FIELDS) result[f] = await decryptValue(e[f])
+  return result
+}
 
 export async function getAllEmployees({ khoi, chucVu, noiLamViec, trangThai, keyword } = {}) {
   let query = supabase.from('nhan_vien').select(COLUMNS)
@@ -20,9 +29,7 @@ export async function getAllEmployees({ khoi, chucVu, noiLamViec, trangThai, key
   const res = await query.order('Mã NV')
   if (res.error) throw res.error
 
-  let employees = await Promise.all(
-    res.data.map(async (e) => ({ ...e, 'Số ĐT': await decryptValue(e['Số ĐT']) }))
-  )
+  let employees = await Promise.all(res.data.map(decryptEmployee))
 
   if (keyword) {
     const kw = keyword.trim().toLowerCase()
@@ -40,29 +47,26 @@ export async function getEmployeeByMa(maNv) {
   const res = await supabase.from('nhan_vien').select(COLUMNS).eq('Mã NV', maNv).limit(1)
   if (res.error) throw res.error
   if (!res.data.length) return null
-  const emp = res.data[0]
-  emp['Số ĐT'] = await decryptValue(emp['Số ĐT'])
-  return emp
+  return decryptEmployee(res.data[0])
 }
 
 export async function createEmployee(data) {
   const payload = { ...data }
-  if ('Số ĐT' in payload) payload['Số ĐT'] = await encryptValue(payload['Số ĐT'])
+  for (const f of ENCRYPTED_FIELDS) if (f in payload) payload[f] = await encryptValue(payload[f])
   const res = await supabase.from('nhan_vien').insert(payload).select().single()
   if (res.error) throw res.error
-  return res.data
+  return decryptEmployee(res.data)
 }
 
 export async function updateEmployee(maNv, data, expectedUpdatedAt) {
   const payload = { ...data }
-  if ('Số ĐT' in payload) payload['Số ĐT'] = await encryptValue(payload['Số ĐT'])
+  for (const f of ENCRYPTED_FIELDS) if (f in payload) payload[f] = await encryptValue(payload[f])
   let query = supabase.from('nhan_vien').update(payload).eq('Mã NV', maNv)
   if (expectedUpdatedAt) query = query.eq('updated_at', expectedUpdatedAt)
   const res = await query.select().maybeSingle()
   if (res.error) throw res.error
   if (!res.data && expectedUpdatedAt) throw new ConflictError()
-  if (res.data) res.data['Số ĐT'] = await decryptValue(res.data['Số ĐT'])
-  return res.data
+  return res.data ? decryptEmployee(res.data) : res.data
 }
 
 // Không xoá cứng — chỉ chuyển trạng thái, giống hệt bản desktop

@@ -2,20 +2,32 @@ import { useEffect, useState } from 'react'
 import {
   getAllEmployees, createEmployee, updateEmployee, deactivateEmployee, importEmployeesFromExcel, ConflictError,
 } from '../lib/employeeQueries'
-import { KHOI_LABELS, TRANG_THAI_NV_LABELS, TRANG_THAI_NV_COLORS, formatDate } from '../lib/format'
+import { KHOI_LABELS, TRANG_THAI_NV_LABELS, TRANG_THAI_NV_COLORS } from '../lib/format'
 import { NHAN_VIEN_SYNONYMS, NHAN_VIEN_REQUIRED, NHAN_VIEN_HEADERS } from '../lib/importSynonyms'
 import { cellValue, cellDateToIso, exportToExcel } from '../lib/excelImport'
+import { getRetirementWarning } from '../lib/retirement'
+import { computeHoSoCompletion, completionColor } from '../lib/hoSoChecklist'
 import ExcelImportModal from '../components/ExcelImportModal'
-import { Card, Button, Badge, Input, Select, Textarea, Modal, LoadingState, ErrorState, EmptyState } from '../components/ui'
+import NhanVienFormModal from '../components/NhanVienFormModal'
+import NhanVienDetailModal from '../components/NhanVienDetailModal'
+import { Card, Button, Badge, LoadingState, ErrorState, EmptyState } from '../components/ui'
 
 const KHOI_LABEL_TO_CODE = Object.fromEntries(Object.entries(KHOI_LABELS).map(([k, v]) => [v, k]))
 const TRANG_THAI_LABEL_TO_CODE = Object.fromEntries(Object.entries(TRANG_THAI_NV_LABELS).map(([k, v]) => [v, k]))
 
+// Các trường không phải chuỗi text đơn giản — xử lý riêng khi nhập Excel.
+const DATE_FIELDS = ['Ngày vào Cty', 'Ngày nghỉ việc']
+const NUMBER_FIELDS = ['Số người phụ thuộc']
+
 const EMPTY_FORM = {
   'Mã NV': '', 'Họ tên': '', 'Ngày sinh': '', 'Giới tính': 'Nam', 'Số CCCD': '',
-  'Ngày cấp CCCD': '', 'Nơi cấp': '', 'Địa chỉ thường trú': '', 'Số ĐT': '', 'Email': '',
-  'Khối': 'VanPhong', 'Chức vụ': '', 'Nơi làm việc': '', 'Ngạch': '', 'Ngày vào Cty': '',
-  'Trạng thái': 'DangLamViec', 'Quyết định đi kèm': '', 'Ghi chú': '',
+  'Ngày cấp CCCD': '', 'Nơi cấp': '', 'Mã số thuế': '', 'Số BHXH': '', 'Tình trạng hôn nhân': '',
+  'Quốc tịch': 'Việt Nam', 'Địa chỉ thường trú': '', 'Địa chỉ hiện tại': '',
+  'Số ĐT': '', 'Email': '', 'Email công ty': '', 'Người liên hệ khẩn cấp': '', 'SĐT khẩn cấp': '',
+  'Khối': 'VanPhong', 'Chức vụ': '', 'Cấp bậc': '', 'Nơi làm việc': '', 'Ngạch': '', 'Quản lý trực tiếp': '',
+  'Ngày vào Cty': '', 'Ngày nghỉ việc': '', 'Trạng thái': 'DangLamViec', 'Quyết định đi kèm': '',
+  'Số người phụ thuộc': 0, 'Số tài khoản': '', 'Ngân hàng': '', 'Trình độ': '', 'Chuyên ngành': '',
+  'Hồ sơ giấy tờ': {}, 'Ghi chú': '', 'Ghi chú nghỉ hưu': '',
   'Thông tin học vấn': '', 'Thông tin gia đình': '',
 }
 
@@ -57,7 +69,7 @@ export default function NhanSu() {
 
   function openEdit(emp) {
     setEditing(emp)
-    setForm({ ...EMPTY_FORM, ...emp })
+    setForm({ ...EMPTY_FORM, ...emp, 'Hồ sơ giấy tờ': emp['Hồ sơ giấy tờ'] || {} })
     setFormError(null)
     setModalOpen(true)
     setDetail(null)
@@ -137,13 +149,14 @@ export default function NhanSu() {
     if (!maNv) return null
     const data = { 'Mã NV': maNv }
     for (const h of NHAN_VIEN_HEADERS) {
-      if (h === 'Mã NV' || h === 'Ngày vào Cty') continue
-      data[h] = String(cellValue(row, colMap, h, '')).trim()
+      if (h === 'Mã NV' || DATE_FIELDS.includes(h)) continue
+      const raw = String(cellValue(row, colMap, h, '')).trim()
+      data[h] = NUMBER_FIELDS.includes(h) ? (Number(raw) || 0) : raw
     }
     data['Giới tính'] = data['Giới tính'] || 'Nam'
     data['Khối'] = KHOI_LABEL_TO_CODE[data['Khối']] || data['Khối'] || 'VanPhong'
     data['Trạng thái'] = TRANG_THAI_LABEL_TO_CODE[data['Trạng thái']] || data['Trạng thái'] || 'DangLamViec'
-    data['Ngày vào Cty'] = cellDateToIso(row, colMap, 'Ngày vào Cty') || null
+    for (const h of DATE_FIELDS) data[h] = cellDateToIso(row, colMap, h) || null
     return data
   }
 
@@ -201,111 +214,59 @@ export default function NhanSu() {
                 <th className="px-5 py-3 font-medium">Khối</th>
                 <th className="px-5 py-3 font-medium">Chức vụ</th>
                 <th className="px-5 py-3 font-medium">Nơi làm việc</th>
+                <th className="px-5 py-3 font-medium">Hồ sơ</th>
                 <th className="px-5 py-3 font-medium">Trạng thái</th>
                 <th className="px-5 py-3 font-medium text-right">Thao tác</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map((emp) => (
-                <tr key={emp['Mã NV']} className="border-b border-[var(--color-line)] last:border-0 hover:bg-black/[0.015]">
-                  <td className="px-5 py-3 font-medium text-[var(--color-ink)]">
-                    <button onClick={() => setDetail(emp)} className="hover:underline">{emp['Mã NV']}</button>
-                  </td>
-                  <td className="px-5 py-3">{emp['Họ tên']}</td>
-                  <td className="px-5 py-3 text-[var(--color-text-muted)]">{KHOI_LABELS[emp['Khối']] || emp['Khối']}</td>
-                  <td className="px-5 py-3 text-[var(--color-text-muted)]">{emp['Chức vụ']}</td>
-                  <td className="px-5 py-3 text-[var(--color-text-muted)]">{emp['Nơi làm việc']}</td>
-                  <td className="px-5 py-3">
-                    <Badge className={TRANG_THAI_NV_COLORS[emp['Trạng thái']]}>{TRANG_THAI_NV_LABELS[emp['Trạng thái']] || emp['Trạng thái']}</Badge>
-                  </td>
-                  <td className="px-5 py-3 text-right space-x-2">
-                    <button onClick={() => openEdit(emp)} className="text-[var(--color-ink)] hover:underline text-sm font-medium">Sửa</button>
-                    {emp['Trạng thái'] !== 'DaNghiViec' && (
-                      <button onClick={() => handleDeactivate(emp)} className="text-[var(--color-danger)] hover:underline text-sm font-medium">Cho nghỉ</button>
-                    )}
-                  </td>
-                </tr>
-              ))}
+              {filtered.map((emp) => {
+                const { done, total, percent } = computeHoSoCompletion(emp['Hồ sơ giấy tờ'])
+                const warning = getRetirementWarning(emp['Ngày sinh'], emp['Giới tính'])
+                return (
+                  <tr key={emp['Mã NV']} className="border-b border-[var(--color-line)] last:border-0 hover:bg-black/[0.015]">
+                    <td className="px-5 py-3 font-medium text-[var(--color-ink)]">
+                      <button onClick={() => setDetail(emp)} className="hover:underline">{emp['Mã NV']}</button>
+                    </td>
+                    <td className="px-5 py-3">
+                      {emp['Họ tên']}
+                      {warning && <span title={warning.text} className="ml-1.5 text-xs">⚠</span>}
+                    </td>
+                    <td className="px-5 py-3 text-[var(--color-text-muted)]">{KHOI_LABELS[emp['Khối']] || emp['Khối']}</td>
+                    <td className="px-5 py-3 text-[var(--color-text-muted)]">{emp['Chức vụ']}</td>
+                    <td className="px-5 py-3 text-[var(--color-text-muted)]">{emp['Nơi làm việc']}</td>
+                    <td className="px-5 py-3">
+                      <Badge className={completionColor(percent)}>{done}/{total}</Badge>
+                    </td>
+                    <td className="px-5 py-3">
+                      <Badge className={TRANG_THAI_NV_COLORS[emp['Trạng thái']]}>{TRANG_THAI_NV_LABELS[emp['Trạng thái']] || emp['Trạng thái']}</Badge>
+                    </td>
+                    <td className="px-5 py-3 text-right space-x-2">
+                      <button onClick={() => openEdit(emp)} className="text-[var(--color-ink)] hover:underline text-sm font-medium">Sửa</button>
+                      {emp['Trạng thái'] !== 'DaNghiViec' && (
+                        <button onClick={() => handleDeactivate(emp)} className="text-[var(--color-danger)] hover:underline text-sm font-medium">Cho nghỉ</button>
+                      )}
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         )}
       </Card>
 
-      {/* Modal xem chi tiết nhanh */}
-      <Modal open={!!detail} onClose={() => setDetail(null)} title={detail ? `${detail['Mã NV']} — ${detail['Họ tên']}` : ''} wide>
-        {detail && (
-          <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
-            <div><span className="text-[var(--color-text-muted)]">Ngày sinh:</span> {detail['Ngày sinh'] || '—'}</div>
-            <div><span className="text-[var(--color-text-muted)]">Giới tính:</span> {detail['Giới tính'] || '—'}</div>
-            <div><span className="text-[var(--color-text-muted)]">Số CCCD:</span> {detail['Số CCCD'] || '—'}</div>
-            <div><span className="text-[var(--color-text-muted)]">Ngày cấp:</span> {detail['Ngày cấp CCCD'] || '—'} tại {detail['Nơi cấp'] || '—'}</div>
-            <div className="col-span-2"><span className="text-[var(--color-text-muted)]">Địa chỉ:</span> {detail['Địa chỉ thường trú'] || '—'}</div>
-            <div><span className="text-[var(--color-text-muted)]">SĐT:</span> {detail['Số ĐT'] || '—'}</div>
-            <div><span className="text-[var(--color-text-muted)]">Email:</span> {detail['Email'] || '—'}</div>
-            <div><span className="text-[var(--color-text-muted)]">Ngạch:</span> {detail['Ngạch'] || '—'}</div>
-            <div><span className="text-[var(--color-text-muted)]">Ngày vào Cty:</span> {formatDate(detail['Ngày vào Cty'])}</div>
-            <div><span className="text-[var(--color-text-muted)]">Quyết định:</span> {detail['Quyết định đi kèm'] || '—'}</div>
-            {detail['Ghi chú'] && <div className="col-span-2"><span className="text-[var(--color-text-muted)]">Ghi chú:</span> {detail['Ghi chú']}</div>}
-            {detail['Thông tin học vấn'] && <div className="col-span-2"><span className="text-[var(--color-text-muted)]">Học vấn:</span> {detail['Thông tin học vấn']}</div>}
-            {detail['Thông tin gia đình'] && <div className="col-span-2"><span className="text-[var(--color-text-muted)]">Gia đình:</span> {detail['Thông tin gia đình']}</div>}
-            <div className="col-span-2 pt-2">
-              <Button variant="ghost" onClick={() => openEdit(detail)}>Sửa thông tin</Button>
-            </div>
-          </div>
-        )}
-      </Modal>
+      <NhanVienDetailModal detail={detail} onClose={() => setDetail(null)} onEdit={openEdit} />
 
-      {/* Modal thêm/sửa */}
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editing ? 'Sửa hồ sơ nhân viên' : 'Thêm nhân viên mới'} wide>
-        <form onSubmit={handleSave} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <Input label="Mã NV *" required disabled={!!editing} value={form['Mã NV']} onChange={(e) => setForm({ ...form, 'Mã NV': e.target.value })} placeholder="VD: HH011" />
-            <Input label="Họ tên *" required value={form['Họ tên']} onChange={(e) => setForm({ ...form, 'Họ tên': e.target.value })} />
-          </div>
-          <div className="grid grid-cols-3 gap-4">
-            <Input label="Ngày sinh" placeholder="dd/mm/yyyy" value={form['Ngày sinh'] || ''} onChange={(e) => setForm({ ...form, 'Ngày sinh': e.target.value })} />
-            <Select label="Giới tính" value={form['Giới tính']} onChange={(e) => setForm({ ...form, 'Giới tính': e.target.value })}>
-              <option>Nam</option><option>Nữ</option>
-            </Select>
-            <Input label="Số CCCD" value={form['Số CCCD'] || ''} onChange={(e) => setForm({ ...form, 'Số CCCD': e.target.value })} />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <Input label="Ngày cấp CCCD" placeholder="dd/mm/yyyy" value={form['Ngày cấp CCCD'] || ''} onChange={(e) => setForm({ ...form, 'Ngày cấp CCCD': e.target.value })} />
-            <Input label="Nơi cấp" value={form['Nơi cấp'] || ''} onChange={(e) => setForm({ ...form, 'Nơi cấp': e.target.value })} />
-          </div>
-          <Textarea label="Địa chỉ thường trú" rows={2} value={form['Địa chỉ thường trú'] || ''} onChange={(e) => setForm({ ...form, 'Địa chỉ thường trú': e.target.value })} />
-          <div className="grid grid-cols-2 gap-4">
-            <Input label="Số điện thoại *" required value={form['Số ĐT']} onChange={(e) => setForm({ ...form, 'Số ĐT': e.target.value })} placeholder="10 số, bắt đầu 0" />
-            <Input label="Email" type="email" value={form['Email'] || ''} onChange={(e) => setForm({ ...form, 'Email': e.target.value })} />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <Select label="Khối làm việc" value={form['Khối']} onChange={(e) => setForm({ ...form, 'Khối': e.target.value })}>
-              {Object.entries(KHOI_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-            </Select>
-            <Input label="Chức vụ *" required value={form['Chức vụ']} onChange={(e) => setForm({ ...form, 'Chức vụ': e.target.value })} />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <Input label="Nơi làm việc / Trạm *" required value={form['Nơi làm việc']} onChange={(e) => setForm({ ...form, 'Nơi làm việc': e.target.value })} />
-            <Input label="Ngạch" value={form['Ngạch'] || ''} onChange={(e) => setForm({ ...form, 'Ngạch': e.target.value })} />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <Input label="Ngày vào Cty" type="date" value={form['Ngày vào Cty'] || ''} onChange={(e) => setForm({ ...form, 'Ngày vào Cty': e.target.value })} />
-            <Select label="Trạng thái" value={form['Trạng thái']} onChange={(e) => setForm({ ...form, 'Trạng thái': e.target.value })}>
-              {Object.entries(TRANG_THAI_NV_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-            </Select>
-          </div>
-          <Input label="Quyết định đi kèm" value={form['Quyết định đi kèm'] || ''} onChange={(e) => setForm({ ...form, 'Quyết định đi kèm': e.target.value })} />
-          <Textarea label="Ghi chú" rows={2} value={form['Ghi chú'] || ''} onChange={(e) => setForm({ ...form, 'Ghi chú': e.target.value })} />
-          <Textarea label="Thông tin học vấn" rows={2} value={form['Thông tin học vấn'] || ''} onChange={(e) => setForm({ ...form, 'Thông tin học vấn': e.target.value })} />
-          <Textarea label="Thông tin gia đình" rows={2} value={form['Thông tin gia đình'] || ''} onChange={(e) => setForm({ ...form, 'Thông tin gia đình': e.target.value })} />
-
-          {formError && <ErrorState message={formError} />}
-          <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="ghost" onClick={() => setModalOpen(false)}>Huỷ</Button>
-            <Button type="submit" variant="accent" disabled={saving}>{saving ? 'Đang lưu...' : 'Lưu hệ thống'}</Button>
-          </div>
-        </form>
-      </Modal>
+      <NhanVienFormModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        editing={editing}
+        form={form}
+        setForm={setForm}
+        onSubmit={handleSave}
+        saving={saving}
+        formError={formError}
+      />
 
       <ExcelImportModal
         open={importOpen}

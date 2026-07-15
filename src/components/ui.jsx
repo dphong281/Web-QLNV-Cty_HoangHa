@@ -85,13 +85,49 @@ export function Textarea({ label, className = '', ...props }) {
   )
 }
 
-export function Modal({ open, onClose, title, children, wide = false }) {
+export function Tabs({ tabs, active, onChange }) {
+  return (
+    <div className="flex gap-1 border-b border-[var(--color-line)] mb-4 overflow-x-auto">
+      {tabs.map((t) => (
+        <button
+          key={t.key}
+          type="button"
+          onClick={() => onChange(t.key)}
+          className={`px-3 py-2 text-sm font-medium whitespace-nowrap border-b-2 -mb-px transition-colors ${
+            active === t.key
+              ? 'border-[var(--color-accent)] text-[var(--color-ink)]'
+              : 'border-transparent text-[var(--color-text-muted)] hover:text-[var(--color-ink)]'
+          }`}
+        >
+          {t.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+export function Checkbox({ label, checked, onChange, className = '' }) {
+  return (
+    <label className={`flex items-center gap-2 text-sm cursor-pointer select-none ${className}`}>
+      <input
+        type="checkbox"
+        checked={!!checked}
+        onChange={onChange}
+        className="w-4 h-4 rounded border-[var(--color-line)] accent-[var(--color-accent)]"
+      />
+      <span className="text-[var(--color-text)]">{label}</span>
+    </label>
+  )
+}
+
+export function Modal({ open, onClose, title, children, wide = false, size }) {
   if (!open) return null
+  const maxWidth = size === 'xl' ? 'max-w-4xl' : wide ? 'max-w-2xl' : 'max-w-md'
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
       <div
-        className={`relative bg-white rounded-2xl shadow-xl w-full ${wide ? 'max-w-2xl' : 'max-w-md'} max-h-[90vh] overflow-y-auto`}
+        className={`relative bg-white rounded-2xl shadow-xl w-full ${maxWidth} max-h-[90vh] overflow-y-auto`}
       >
         <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--color-line)] sticky top-0 bg-white rounded-t-2xl">
           <h3 className="font-display text-lg font-semibold text-[var(--color-ink)]">{title}</h3>

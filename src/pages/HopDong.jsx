@@ -5,6 +5,7 @@ import {
 import { LOAI_HD_LABELS, formatCurrency, formatDate } from '../lib/format'
 import { exportToExcel } from '../lib/excelImport'
 import { Card, Button, Badge, Input, Select, Modal, LoadingState, ErrorState, EmptyState } from '../components/ui'
+import PrintContractModal from '../components/PrintContractModal'
 
 const TRANG_THAI_HIEN_THI_LABELS = {
   DangHieuLuc: 'Đang hiệu lực', SapHetHan: 'Sắp hết hạn', DaHetHan: 'Đã hết hạn', DaThanhLy: 'Đã thanh lý',
@@ -32,6 +33,7 @@ export default function HopDong() {
   const [form, setForm] = useState(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState(null)
+  const [printTarget, setPrintTarget] = useState(null)
 
   useEffect(() => { load() }, [])
 
@@ -125,7 +127,10 @@ export default function HopDong() {
           <h1 className="font-display text-2xl font-semibold text-[var(--color-ink)]">Hợp đồng lao động</h1>
           <p className="text-sm text-[var(--color-text-muted)] mt-1">{list.length} hợp đồng</p>
         </div>
-        <Button variant="accent" onClick={openAdd}>+ Ký hợp đồng mới</Button>
+        <div className="flex gap-2">
+          <Button variant="ghost" onClick={() => setPrintTarget({ maNv: '', loaiVanBan: 'ThuViec', contract: null })}>🖨 In hợp đồng / quyết định</Button>
+          <Button variant="accent" onClick={openAdd}>+ Ký hợp đồng mới</Button>
+        </div>
       </div>
 
       <div className="mb-4">
@@ -167,6 +172,7 @@ export default function HopDong() {
                   <td className="px-5 py-3 text-right font-medium">{formatCurrency(c.luong_co_ban)}</td>
                   <td className="px-5 py-3"><Badge className={TRANG_THAI_HIEN_THI_COLORS[c.trangThaiHienThi]}>{TRANG_THAI_HIEN_THI_LABELS[c.trangThaiHienThi]}</Badge></td>
                   <td className="px-5 py-3 text-right space-x-2">
+                    <button onClick={() => setPrintTarget({ maNv: c.ma_nv, loaiVanBan: c.loai_hd === 'ThuViec' ? 'ThuViec' : 'HopDongLaoDong', contract: c })} className="text-[var(--color-ink)] hover:underline text-sm font-medium">In</button>
                     {c.trangThaiHienThi !== 'DaThanhLy' && (
                       <>
                         <button onClick={() => openEdit(c)} className="text-[var(--color-ink)] hover:underline text-sm font-medium">Sửa</button>
@@ -208,6 +214,14 @@ export default function HopDong() {
           </div>
         </form>
       </Modal>
+
+      <PrintContractModal
+        open={!!printTarget}
+        onClose={() => setPrintTarget(null)}
+        initialMaNv={printTarget?.maNv}
+        initialLoaiVanBan={printTarget?.loaiVanBan}
+        contract={printTarget?.contract}
+      />
     </div>
   )
 }

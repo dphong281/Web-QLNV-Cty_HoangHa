@@ -49,6 +49,51 @@ export async function getActiveContractByNv(maNv) {
   return res.data[0] ? decryptContract(res.data[0]) : null
 }
 
+function soNgayConLai(ngayHetHan) {
+  if (!ngayHetHan) return null
+  const today = new Date(); today.setHours(0, 0, 0, 0)
+  const hetHan = new Date(ngayHetHan); hetHan.setHours(0, 0, 0, 0)
+  return Math.round((hetHan - today) / 86400000)
+}
+
+// Đọc cảnh báo hợp đồng sắp/đã hết hạn + thử việc cần đánh giá — dùng cho tab
+// "Theo dõi cảnh báo" ở Tổng quan. Chỉ đọc dữ liệu hop_dong có sẵn, không tạo
+// logic nhập liệu hợp đồng mới.
+export async function getContractWarnings() {
+  const res = await supabase.from('hop_dong').select('*').eq('trang_thai', 'DangHieuLuc')
+  if (res.error) throw res.error
+  if (!res.data.length) return { canXuLy: [], thuViecCanDanhGia: [] }
+
+  const maNvList = [...new Set(res.data.map((c) => c.ma_nv))]
+  const nvRes = await supabase.from('nhan_vien').select('"Mã NV", "Họ tên", "Nơi làm việc"').in('Mã NV', maNvList)
+  if (nvRes.error) throw nvRes.error
+  const nvMap = Object.fromEntries(nvRes.data.map((n) => [n['Mã NV'], n]))
+
+  const canXuLy = []
+  const thuViecCanDanhGia = []
+  for (const c of res.data) {
+    const trangThaiHienThi = computeDisplayStatus(c)
+    if (trangThaiHienThi !== 'SapHetHan' && trangThaiHienThi !== 'DaHetHan') continue
+    const nv = nvMap[c.ma_nv] || {}
+    const row = {
+      maNv: c.ma_nv,
+      hoTen: nv['Họ tên'] || '',
+      boPhan: nv['Nơi làm việc'] || '',
+      ngayHetHan: c.ngay_het_han,
+      soNgayConLai: soNgayConLai(c.ngay_het_han),
+      trangThaiHienThi,
+    }
+    if (c.loai_hd === 'ThuViec') {
+      thuViecCanDanhGia.push({ ...row, loaiHd: getLoaiHdDisplay(c.loai_hd, c.lan_thu) })
+    } else {
+      canXuLy.push({ ...row, loaiHd: getLoaiHdDisplay(c.loai_hd, c.lan_thu) })
+    }
+  }
+  canXuLy.sort((a, b) => a.soNgayConLai - b.soNgayConLai)
+  thuViecCanDanhGia.sort((a, b) => a.soNgayConLai - b.soNgayConLai)
+  return { canXuLy, thuViecCanDanhGia }
+}
+
 export async function getContractsTable({ keyword, khoi, loaiHd, lanThu, trangThaiHienThi } = {}) {
   let query = supabase.from('hop_dong').select('*')
   if (loaiHd) query = query.eq('loai_hd', loaiHd)
