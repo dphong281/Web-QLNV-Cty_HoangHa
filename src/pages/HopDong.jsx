@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
 import {
-  getContractsTable, createContractLogic, updateContractLogic, liquidateContract, ConflictError,
+  getContractsTable, createContractLogic, updateContractLogic, liquidateContract, ConflictError, getContractHistoryTable,
 } from '../lib/contractQueries'
 import { LOAI_HD_LABELS, formatCurrency, formatDate } from '../lib/format'
 import { exportToExcel } from '../lib/excelImport'
 import { Card, Button, Badge, Input, Select, Modal, LoadingState, ErrorState, EmptyState } from '../components/ui'
 import PrintContractModal from '../components/PrintContractModal'
+import ContractHistoryTable from '../components/ContractHistoryTable'
 
 const TRANG_THAI_HIEN_THI_LABELS = {
   DangHieuLuc: 'Đang hiệu lực', SapHetHan: 'Sắp hết hạn', DaHetHan: 'Đã hết hạn', DaThanhLy: 'Đã thanh lý',
@@ -35,12 +36,27 @@ export default function HopDong() {
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState(null)
   const [printTarget, setPrintTarget] = useState(null)
+  const [viewMode, setViewMode] = useState('list') // 'list' | 'byEmployee'
+  const [historyRows, setHistoryRows] = useState([])
+  const [historyLoading, setHistoryLoading] = useState(false)
+  const [historyError, setHistoryError] = useState(null)
+  const [historyVersion, setHistoryVersion] = useState(0)
+
+  useEffect(() => {
+    if (viewMode !== 'byEmployee') return
+    setHistoryLoading(true)
+    getContractHistoryTable()
+      .then(setHistoryRows)
+      .catch((err) => setHistoryError(err.message))
+      .finally(() => setHistoryLoading(false))
+  }, [viewMode, historyVersion])
 
   useEffect(() => { load() }, [])
 
   async function load() {
     setLoading(true)
     setError(null)
+    setHistoryVersion((v) => v + 1)
     try {
       setList(await getContractsTable())
     } catch (err) {
@@ -135,6 +151,25 @@ export default function HopDong() {
         </div>
       </div>
 
+      <div className="flex items-center gap-2 mb-4">
+        <button
+          onClick={() => setViewMode('list')}
+          className={`px-3 py-1.5 rounded-lg text-sm font-medium ${viewMode === 'list' ? 'bg-[var(--color-ink)] text-white' : 'bg-white border border-[var(--color-line)] text-[var(--color-text)]'}`}
+        >Danh sách</button>
+        <button
+          onClick={() => setViewMode('byEmployee')}
+          className={`px-3 py-1.5 rounded-lg text-sm font-medium ${viewMode === 'byEmployee' ? 'bg-[var(--color-ink)] text-white' : 'bg-white border border-[var(--color-line)] text-[var(--color-text)]'}`}
+        >Theo nhân viên (4 giai đoạn)</button>
+      </div>
+
+      {viewMode === 'byEmployee' ? (
+        <Card>
+          {historyLoading ? <LoadingState /> : historyError ? <div className="p-4"><ErrorState message={historyError} /></div> : (
+            <ContractHistoryTable rows={historyRows} />
+          )}
+        </Card>
+      ) : (
+      <>
       <div className="mb-4">
         <Button variant="ghost" onClick={handleExportExpiring}>⬇ Xuất Excel hợp đồng sắp hết hạn</Button>
       </div>
@@ -193,6 +228,8 @@ export default function HopDong() {
           </table>
         )}
       </Card>
+      </>
+      )}
 
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editing ? `Sửa hợp đồng ${editing.ma_hd}` : 'Ký hợp đồng mới'} wide>
         <form onSubmit={handleSave} className="space-y-4">

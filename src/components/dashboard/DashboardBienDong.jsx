@@ -3,7 +3,7 @@ import { getBienDongNhanSu } from '../../lib/reportQueries'
 import { Card, StatCard, Select, LoadingState, ErrorState } from '../ui'
 
 const CUR_YEAR = new Date().getFullYear()
-const YEAR_OPTIONS = Array.from({ length: 6 }, (_, i) => CUR_YEAR - i)
+const YEAR_OPTIONS = Array.from({ length: 8 }, (_, i) => CUR_YEAR + 2 - i) // 2 năm tới -> 5 năm trước
 
 function ghiChuColor(g) {
   if (g === 'Ổn định') return 'text-[var(--color-good)]'

@@ -127,7 +127,7 @@ export async function generatePayroll(month, year) {
     const khauTru = (absentCount[maNv] || 0) * mucPhat
     const thucLanh = luongCoBan + phuCap + luongCaDem + luongOt + luongChuyen - khauTru
 
-    rows.push({
+    const row = {
       id_ky_luong: periodId, ma_nv: maNv,
       luong_co_ban: await encryptValue(luongCoBan),
       phu_cap: await encryptValue(phuCap),
@@ -136,7 +136,11 @@ export async function generatePayroll(month, year) {
       luong_chuyen: await encryptValue(luongChuyen),
       khau_tru: await encryptValue(khauTru),
       thuc_lanh: await encryptValue(thucLanh),
-    })
+    }
+    // Chụp lại từng khoản phụ cấp chi tiết tại thời điểm tính lương này (không đổi theo
+    // nếu sau đó sửa đơn giá hiện tại của nhân viên ở ho_so_luong).
+    for (const f of ALLOWANCE_FIELDS) row[f] = await encryptValue(hs[f] || 0)
+    rows.push(row)
   }
 
   const upsertRes = await supabase.from('bang_luong').upsert(rows, { onConflict: 'id_ky_luong,ma_nv' })
@@ -156,7 +160,7 @@ export async function getPayrollTable(periodId) {
 
   const result = await Promise.all(res.data.map(async (r) => {
     const emp = empMap[r.ma_nv] || {}
-    return {
+    const row = {
       payrollId: r.id, maNv: r.ma_nv, hoTen: emp['Họ tên'] || '', khoi: emp['Khối'] || '',
       luongCoBan: Number(await decryptValue(r.luong_co_ban)) || 0,
       phuCap: Number(await decryptValue(r.phu_cap)) || 0,
@@ -166,6 +170,8 @@ export async function getPayrollTable(periodId) {
       khauTru: Number(await decryptValue(r.khau_tru)) || 0,
       thucLanh: Number(await decryptValue(r.thuc_lanh)) || 0,
     }
+    for (const f of ALLOWANCE_FIELDS) row[f] = Number(await decryptValue(r[f])) || 0
+    return row
   }))
   result.sort((a, b) => a.maNv.localeCompare(b.maNv))
   return result

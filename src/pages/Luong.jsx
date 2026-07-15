@@ -66,6 +66,16 @@ export default function Luong() {
   const [hsForm, setHsForm] = useState(null)
   const [savingHs, setSavingHs] = useState(false)
   const [isPreview, setIsPreview] = useState(false)
+  const [showDetail, setShowDetail] = useState(false)
+
+  const DETAIL_COLUMNS = [
+    ['phu_cap_chuc_danh', 'PC chức danh'], ['phu_cap_trach_nhiem_luong', 'PC trách nhiệm'],
+    ['phu_cap_doc_hai_luong', 'PC độc hại'], ['phu_cap_tham_nien', 'PC thâm niên'],
+    ['phu_cap_thu_hut', 'PC thu hút'], ['phu_cap_vung', 'PC vùng'], ['phu_cap_kiem_nhiem', 'PC kiêm nhiệm'],
+    ['luong_kpi', 'Lương KPI'], ['phu_cap_xang_xe', 'PC xăng xe'], ['phu_cap_dien_thoai', 'PC điện thoại'],
+    ['phu_cap_nha_o', 'PC nhà ở'], ['phu_cap_an_ca', 'PC ăn ca'], ['phu_cap_dong_phuc', 'PC đồng phục'],
+    ['phuc_loi_con_nho', 'Phúc lợi con nhỏ'],
+  ]
 
   useEffect(() => { load() }, [month, year])
 
@@ -154,8 +164,12 @@ export default function Luong() {
   const money = (v) => (v === null || v === undefined ? '—' : formatCurrency(v))
 
   function handleExport() {
-    const headers = ['Mã NV', 'Họ tên', 'Khối', 'Lương CB', 'Phụ cấp', 'Ca đêm', 'OT', 'Chuyến', 'Khấu trừ', 'Thực lãnh']
-    const dataRows = rows.map((r) => [r.maNv, r.hoTen, KHOI_LABELS[r.khoi] || r.khoi, r.luongCoBan || 0, r.phuCap || 0, r.luongCaDem || 0, r.luongOt || 0, r.luongChuyen || 0, r.khauTru || 0, r.thucLanh || 0])
+    const headers = ['Mã NV', 'Họ tên', 'Khối', 'Lương CB', 'Phụ cấp', ...(showDetail ? DETAIL_COLUMNS.map(([, label]) => label) : []), 'Ca đêm', 'OT', 'Chuyến', 'Khấu trừ', 'Thực lãnh']
+    const dataRows = rows.map((r) => [
+      r.maNv, r.hoTen, KHOI_LABELS[r.khoi] || r.khoi, r.luongCoBan || 0, r.phuCap || 0,
+      ...(showDetail ? DETAIL_COLUMNS.map(([key]) => r[key] || 0) : []),
+      r.luongCaDem || 0, r.luongOt || 0, r.luongChuyen || 0, r.khauTru || 0, r.thucLanh || 0,
+    ])
     exportToExcel(headers, dataRows, `BangLuong_${month}_${year}.xlsx`, `BangLuong_${month}_${year}`)
   }
 
@@ -169,6 +183,7 @@ export default function Luong() {
           </p>
         </div>
         <div className="flex gap-2">
+          {rows.length > 0 && !isPreview && <Button variant="ghost" onClick={() => setShowDetail((v) => !v)}>{showDetail ? '📐 Thu gọn' : '📊 Xem chi tiết'}</Button>}
           {rows.length > 0 && <Button variant="ghost" onClick={handleExport}>⬇ Xuất Excel</Button>}
           {period?.trang_thai !== 'DaChot' && (
             <>
@@ -204,7 +219,7 @@ export default function Luong() {
         </Card>
       )}
 
-      <Card>
+      <Card className={showDetail ? 'overflow-x-auto' : ''}>
         {loading ? <LoadingState /> : error ? <div className="p-4"><ErrorState message={error} /></div> : rows.length === 0 ? (
           <EmptyState title="Chưa tính lương cho kỳ này" sub="Bấm 'Tính lương' để hệ thống tự tính dựa trên hợp đồng, ca đêm, OT, chuyến hàng, vắng mặt." action={<Button variant="accent" onClick={handleGenerate}>🧮 Tính lương</Button>} />
         ) : (
@@ -216,6 +231,9 @@ export default function Luong() {
                 <th className="px-4 py-3 font-medium">Khối</th>
                 <th className="px-4 py-3 font-medium text-right">Lương CB</th>
                 <th className="px-4 py-3 font-medium text-right">Phụ cấp</th>
+                {showDetail && DETAIL_COLUMNS.map(([key, label]) => (
+                  <th key={key} className="px-4 py-3 font-medium text-right whitespace-nowrap">{label}</th>
+                ))}
                 <th className="px-4 py-3 font-medium text-right">Ca đêm</th>
                 <th className="px-4 py-3 font-medium text-right">OT</th>
                 <th className="px-4 py-3 font-medium text-right">Chuyến</th>
@@ -233,6 +251,9 @@ export default function Luong() {
                   <td className="px-4 py-2.5 text-[var(--color-text-muted)]">{KHOI_LABELS[r.khoi] || r.khoi}</td>
                   <td className="px-4 py-2.5 text-right">{money(r.luongCoBan)}</td>
                   <td className="px-4 py-2.5 text-right">{money(r.phuCap)}</td>
+                  {showDetail && DETAIL_COLUMNS.map(([key]) => (
+                    <td key={key} className="px-4 py-2.5 text-right text-[var(--color-text-muted)]">{money(r[key])}</td>
+                  ))}
                   <td className="px-4 py-2.5 text-right">{money(r.luongCaDem)}</td>
                   <td className="px-4 py-2.5 text-right">{money(r.luongOt)}</td>
                   <td className="px-4 py-2.5 text-right">{money(r.luongChuyen)}</td>

@@ -195,7 +195,40 @@ export async function getContractHistoryByNv(maNv) {
 }
 
 
-// ---------- NHẬP HÀNG LOẠT HỢP ĐỒNG TỪ EXCEL (dùng chung với nhập Nhân sự) ----------
+// Bản bulk của getContractHistoryByNv — dùng cho chế độ xem "Theo nhân viên" ở trang Hợp đồng,
+// tránh N+1 query (1 lần lấy hết hop_dong + nhan_vien, gộp ở JS).
+export async function getContractHistoryTable() {
+  const [hdRes, nvRes] = await Promise.all([
+    supabase.from('hop_dong').select('*').order('ngay_ky', { ascending: false }),
+    supabase.from('nhan_vien').select('"Mã NV", "Họ tên", "Nơi làm việc", "Trạng thái"').order('Mã NV'),
+  ])
+  if (hdRes.error) throw hdRes.error
+  if (nvRes.error) throw nvRes.error
+
+  const contracts = await Promise.all(hdRes.data.map(decryptContract))
+  const byNv = {}
+  for (const c of contracts) {
+    (byNv[c.ma_nv] ||= []).push(c)
+  }
+
+  return nvRes.data.map((nv) => {
+    const maNv = nv['Mã NV']
+    const list = byNv[maNv] || []
+    function findLatest(pred) {
+      const found = list.filter(pred)
+      return found[0] ? { ...found[0], trangThaiHienThi: computeDisplayStatus(found[0]) } : null
+    }
+    return {
+      maNv, hoTen: nv['Họ tên'], boPhan: nv['Nơi làm việc'] || '', trangThaiNv: nv['Trạng thái'],
+      thuViec: findLatest((c) => c.loai_hd === 'ThuViec'),
+      lan1: findLatest((c) => c.loai_hd === 'XacDinhThoiHan' && c.lan_thu === 1),
+      lan2: findLatest((c) => c.loai_hd === 'XacDinhThoiHan' && c.lan_thu === 2),
+      khongXacDinhThoiHan: findLatest((c) => c.loai_hd === 'KhongXacDinhThoiHan'),
+    }
+  }).filter((r) => r.thuViec || r.lan1 || r.lan2 || r.khongXacDinhThoiHan)
+}
+
+
 // input: mảng { maNv, luongCoBan, phuCapTrachNhiem, phuCapDocHai, stages: [{ loaiHd, lanThu, soHd, ngayKy, ngayHieuLuc, ngayHetHan, ketQuaDanhGia }] }
 // Giai đoạn cuối cùng có dữ liệu trong mỗi nhân viên -> đánh dấu DangHieuLuc, các giai đoạn
 // trước đó (đã bị thay thế) -> DaThanhLy. Chạy lại nhiều lần không tạo trùng — nếu đã có
