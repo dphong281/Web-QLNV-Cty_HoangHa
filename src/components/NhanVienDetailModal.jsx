@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Modal, Button, Badge } from './ui'
 import { formatDate, formatCurrency, TRANG_THAI_HD_LABELS } from '../lib/format'
-import { getLoaiHdDisplay, getActiveContractByNv } from '../lib/contractQueries'
-import { getHoSoLuong } from '../lib/payrollQueries'
+import { getContractHistoryByNv } from '../lib/contractQueries'
+import { getHoSoLuong, tinhTongPhuCap, tinhTongThuNhap } from '../lib/payrollQueries'
 import { getAge, getSeniorityYears, getRetirementAgeLabel, getRetirementCountdown, getRetirementWarning } from '../lib/retirement'
 import { computeHoSoCompletion, completionColor } from '../lib/hoSoChecklist'
 
@@ -15,17 +15,17 @@ function Field({ label, children }) {
 }
 
 export default function NhanVienDetailModal({ detail, onClose, onEdit }) {
-  const [contract, setContract] = useState(null)
+  const [history, setHistory] = useState(null)
   const [salary, setSalary] = useState(null)
   const [loadingExtra, setLoadingExtra] = useState(false)
 
   useEffect(() => {
-    if (!detail) { setContract(null); setSalary(null); return }
+    if (!detail) { setHistory(null); setSalary(null); return }
     setLoadingExtra(true)
     Promise.all([
-      getActiveContractByNv(detail['Mã NV']).catch(() => null),
+      getContractHistoryByNv(detail['Mã NV']).catch(() => null),
       getHoSoLuong(detail['Mã NV']).catch(() => null),
-    ]).then(([c, s]) => { setContract(c); setSalary(s) }).finally(() => setLoadingExtra(false))
+    ]).then(([h, s]) => { setHistory(h); setSalary(s) }).finally(() => setLoadingExtra(false))
   }, [detail])
 
   if (!detail) return null
@@ -88,24 +88,51 @@ export default function NhanVienDetailModal({ detail, onClose, onEdit }) {
 
         <section>
           <h4 className="font-display font-semibold text-[var(--color-ink)] mb-2">
-            Hợp đồng &amp; Lương <span className="text-xs font-normal text-[var(--color-text-muted)]">(đọc từ module Hợp đồng / Lương)</span>
+            Hợp đồng <span className="text-xs font-normal text-[var(--color-text-muted)]">(đọc từ module Hợp đồng, không nhập lại ở đây)</span>
           </h4>
           {loadingExtra ? (
             <div className="text-[var(--color-text-muted)]">Đang tải...</div>
           ) : (
-            <div className="grid grid-cols-2 gap-x-6 gap-y-2">
-              <Field label="Hợp đồng hiện tại">
-                {contract ? (
-                  <>
-                    {getLoaiHdDisplay(contract.loai_hd, contract.lan_thu)}{' '}
-                    <Badge className="bg-black/5">{TRANG_THAI_HD_LABELS[contract.trang_thai] || contract.trang_thai}</Badge>
-                    {contract.ngay_het_han ? ` — hết hạn ${formatDate(contract.ngay_het_han)}` : ''}
-                  </>
-                ) : 'Chưa có hợp đồng còn hiệu lực'}
-              </Field>
-              <Field label="Lương cơ bản (đóng BHXH)">{salary ? formatCurrency(salary.luong_co_ban) : '—'}</Field>
+            <div className="space-y-2">
+              {[
+                ['thuViec', 'Thử việc'],
+                ['lan1', 'Xác định thời hạn — Lần 1'],
+                ['lan2', 'Xác định thời hạn — Lần 2'],
+                ['khongXacDinhThoiHan', 'Không xác định thời hạn'],
+              ].map(([key, label]) => {
+                const c = history?.[key]
+                return (
+                  <div key={key} className="flex items-center justify-between text-sm border-b border-[var(--color-line)] last:border-0 pb-2 last:pb-0">
+                    <span className="text-[var(--color-text-muted)] w-56 shrink-0">{label}</span>
+                    {c ? (
+                      <div className="flex items-center gap-2 flex-wrap justify-end">
+                        <span>{c.ma_hd} — ký {formatDate(c.ngay_ky)}, hiệu lực {formatDate(c.ngay_hieu_luc)}{c.ngay_het_han ? ` → ${formatDate(c.ngay_het_han)}` : ' (không XĐ)'}</span>
+                        <Badge className="bg-black/5">{TRANG_THAI_HD_LABELS[c.trangThaiHienThi] || c.trangThaiHienThi}</Badge>
+                        {key === 'thuViec' && c.ket_qua_danh_gia && c.ket_qua_danh_gia !== 'Chưa đánh giá' && (
+                          <Badge className={c.ket_qua_danh_gia === 'Đạt' ? 'bg-[var(--color-good)]/10 text-[var(--color-good)]' : 'bg-[var(--color-danger)]/10 text-[var(--color-danger)]'}>{c.ket_qua_danh_gia}</Badge>
+                        )}
+                      </div>
+                    ) : <span className="text-[var(--color-text-muted)]">—</span>}
+                  </div>
+                )
+              })}
             </div>
           )}
+        </section>
+
+        <section>
+          <h4 className="font-display font-semibold text-[var(--color-ink)] mb-2">
+            Lương &amp; phụ cấp <span className="text-xs font-normal text-[var(--color-text-muted)]">(đọc từ module Lương, không nhập lại ở đây)</span>
+          </h4>
+          {loadingExtra ? (
+            <div className="text-[var(--color-text-muted)]">Đang tải...</div>
+          ) : salary ? (
+            <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+              <Field label="Lương chức danh (đóng BHXH)">{formatCurrency(salary.luong_co_ban)}</Field>
+              <Field label="Tổng phụ cấp">{formatCurrency(tinhTongPhuCap(salary))}</Field>
+              <Field label="Tổng thu nhập">{formatCurrency(tinhTongThuNhap(salary))}</Field>
+            </div>
+          ) : <div className="text-[var(--color-text-muted)]">Chưa khai báo lương.</div>}
         </section>
 
         <section>

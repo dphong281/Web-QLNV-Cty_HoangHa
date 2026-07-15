@@ -2,7 +2,27 @@ import { supabase } from './supabase'
 import { encryptValue, decryptValue } from './fernetCrypto'
 
 const NIGHT_SHIFT_CA_ID_FALLBACK = 3
-const MONEY_FIELDS = ['luong_co_ban', 'phu_cap_co_dinh', 'don_gia_ca_dem', 'don_gia_ot_gio', 'don_gia_chuyen', 'muc_phat_vang_mat']
+// Các khoản lương/phụ cấp chi tiết theo đúng cột trong file Excel công ty (ho_so_luong).
+// phu_cap_co_dinh giữ lại cho tương thích ngược, không dùng để tính "Tổng phụ cấp" nữa.
+const ALLOWANCE_FIELDS_BHXH = [
+  'phu_cap_chuc_danh', 'phu_cap_trach_nhiem_luong', 'phu_cap_doc_hai_luong', 'phu_cap_tham_nien',
+  'phu_cap_thu_hut', 'phu_cap_vung', 'phu_cap_kiem_nhiem', 'luong_kpi',
+]
+const ALLOWANCE_FIELDS_KHONG_BHXH = [
+  'phu_cap_xang_xe', 'phu_cap_dien_thoai', 'phu_cap_nha_o', 'phu_cap_an_ca', 'phu_cap_dong_phuc', 'phuc_loi_con_nho',
+]
+const ALLOWANCE_FIELDS = [...ALLOWANCE_FIELDS_BHXH, ...ALLOWANCE_FIELDS_KHONG_BHXH]
+const MONEY_FIELDS = [
+  'luong_co_ban', 'phu_cap_co_dinh', 'don_gia_ca_dem', 'don_gia_ot_gio', 'don_gia_chuyen', 'muc_phat_vang_mat',
+  ...ALLOWANCE_FIELDS,
+]
+
+export function tinhTongPhuCap(hs) {
+  return ALLOWANCE_FIELDS.reduce((sum, f) => sum + (Number(hs?.[f]) || 0), 0)
+}
+export function tinhTongThuNhap(hs) {
+  return (Number(hs?.luong_co_ban) || 0) + tinhTongPhuCap(hs)
+}
 
 function lastDayOfMonth(year, month) { return new Date(year, month, 0).getDate() }
 
@@ -95,7 +115,7 @@ export async function generatePayroll(month, year) {
   for (const maNv of maNvList) {
     const hs = hoSoMap[maNv] || {}
     const luongCoBan = hs.luong_co_ban || 0
-    const phuCap = hs.phu_cap_co_dinh || 0
+    const phuCap = tinhTongPhuCap(hs)
     const donGiaCaDem = hs.don_gia_ca_dem || 0
     const donGiaOt = hs.don_gia_ot_gio || 0
     const donGiaChuyen = hs.don_gia_chuyen || 0

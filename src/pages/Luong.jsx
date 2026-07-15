@@ -2,10 +2,52 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import {
   getOrCreatePeriod, closePeriod, generatePayroll, getPayrollTable, getHoSoLuong, upsertHoSoLuong, getActiveEmployeesBasic,
+  tinhTongPhuCap, tinhTongThuNhap,
 } from '../lib/payrollQueries'
 import { KHOI_LABELS, formatCurrency } from '../lib/format'
 import { exportToExcel } from '../lib/excelImport'
 import { Card, Button, Badge, Input, Select, Modal, LoadingState, ErrorState, EmptyState } from '../components/ui'
+
+const ALLOWANCE_GROUPS = [
+  {
+    title: 'Lương & phụ cấp có đóng BHXH',
+    fields: [
+      ['luong_co_ban', 'Lương chức danh (đóng BHXH)'],
+      ['phu_cap_chuc_danh', 'Phụ cấp chức danh/chức vụ'],
+      ['phu_cap_trach_nhiem_luong', 'Phụ cấp trách nhiệm'],
+      ['phu_cap_doc_hai_luong', 'Phụ cấp độc hại, nguy hiểm'],
+      ['phu_cap_tham_nien', 'Phụ cấp thâm niên'],
+      ['phu_cap_thu_hut', 'Phụ cấp thu hút'],
+      ['phu_cap_vung', 'Phụ cấp vùng'],
+      ['phu_cap_kiem_nhiem', 'Phụ cấp kiêm nhiệm'],
+      ['luong_kpi', 'Lương KPI (hiệu quả công việc)'],
+    ],
+  },
+  {
+    title: 'Phụ cấp không đóng BHXH',
+    fields: [
+      ['phu_cap_xang_xe', 'Phụ cấp xăng xe'],
+      ['phu_cap_dien_thoai', 'Phụ cấp điện thoại'],
+      ['phu_cap_nha_o', 'Phụ cấp nhà ở'],
+      ['phu_cap_an_ca', 'Phụ cấp ăn ca'],
+      ['phu_cap_dong_phuc', 'Phụ cấp đồng phục'],
+    ],
+  },
+  {
+    title: 'Phúc lợi',
+    fields: [['phuc_loi_con_nho', 'Phúc lợi con nhỏ dưới 6 tuổi']],
+  },
+  {
+    title: 'Đơn giá tính lương theo phát sinh (giữ nguyên, không đổi)',
+    fields: [
+      ['don_gia_ca_dem', 'Đơn giá / ca đêm'],
+      ['don_gia_ot_gio', 'Đơn giá / giờ OT'],
+      ['don_gia_chuyen', 'Đơn giá / chuyến hàng'],
+      ['muc_phat_vang_mat', 'Mức phạt / lần vắng mặt'],
+    ],
+  },
+]
+const ALL_HS_KEYS = ALLOWANCE_GROUPS.flatMap((g) => g.fields.map(([k]) => k))
 
 const now = new Date()
 
@@ -84,15 +126,9 @@ export default function Luong() {
   async function openHoSoLuong(maNv) {
     try {
       const hs = await getHoSoLuong(maNv)
-      setHsForm({
-        maNv,
-        luong_co_ban: String(hs?.luong_co_ban || 0),
-        phu_cap_co_dinh: String(hs?.phu_cap_co_dinh || 0),
-        don_gia_ca_dem: String(hs?.don_gia_ca_dem || 0),
-        don_gia_ot_gio: String(hs?.don_gia_ot_gio || 0),
-        don_gia_chuyen: String(hs?.don_gia_chuyen || 0),
-        muc_phat_vang_mat: String(hs?.muc_phat_vang_mat || 0),
-      })
+      const form = { maNv }
+      for (const key of ALL_HS_KEYS) form[key] = String(hs?.[key] || 0)
+      setHsForm(form)
       setHsModalOpen(true)
     } catch (err) {
       alert('Lỗi: ' + err.message)
@@ -103,14 +139,9 @@ export default function Luong() {
     e.preventDefault()
     setSavingHs(true)
     try {
-      await upsertHoSoLuong(hsForm.maNv, {
-        luong_co_ban: Number(hsForm.luong_co_ban) || 0,
-        phu_cap_co_dinh: Number(hsForm.phu_cap_co_dinh) || 0,
-        don_gia_ca_dem: Number(hsForm.don_gia_ca_dem) || 0,
-        don_gia_ot_gio: Number(hsForm.don_gia_ot_gio) || 0,
-        don_gia_chuyen: Number(hsForm.don_gia_chuyen) || 0,
-        muc_phat_vang_mat: Number(hsForm.muc_phat_vang_mat) || 0,
-      })
+      const payload = {}
+      for (const key of ALL_HS_KEYS) payload[key] = Number(hsForm[key]) || 0
+      await upsertHoSoLuong(hsForm.maNv, payload)
       setHsModalOpen(false)
     } catch (err) {
       alert('Lỗi: ' + err.message)
@@ -214,16 +245,38 @@ export default function Luong() {
         )}
       </Card>
 
-      <Modal open={hsModalOpen} onClose={() => setHsModalOpen(false)} title={`Đơn giá lương — ${hsForm?.maNv}`}>
+      <Modal open={hsModalOpen} onClose={() => setHsModalOpen(false)} title={`Đơn giá lương — ${hsForm?.maNv}`} size="xl">
         {hsForm && (
-          <form onSubmit={handleSaveHoSo} className="space-y-4">
-            <Input label="Lương cơ bản (tự động từ hợp đồng, có thể sửa tay)" type="number" value={hsForm.luong_co_ban} onChange={(e) => setHsForm({ ...hsForm, luong_co_ban: e.target.value })} />
-            <Input label="Phụ cấp cố định" type="number" value={hsForm.phu_cap_co_dinh} onChange={(e) => setHsForm({ ...hsForm, phu_cap_co_dinh: e.target.value })} />
-            <Input label="Đơn giá / ca đêm" type="number" value={hsForm.don_gia_ca_dem} onChange={(e) => setHsForm({ ...hsForm, don_gia_ca_dem: e.target.value })} />
-            <Input label="Đơn giá / giờ OT" type="number" value={hsForm.don_gia_ot_gio} onChange={(e) => setHsForm({ ...hsForm, don_gia_ot_gio: e.target.value })} />
-            <Input label="Đơn giá / chuyến hàng" type="number" value={hsForm.don_gia_chuyen} onChange={(e) => setHsForm({ ...hsForm, don_gia_chuyen: e.target.value })} />
-            <Input label="Mức phạt / lần vắng mặt" type="number" value={hsForm.muc_phat_vang_mat} onChange={(e) => setHsForm({ ...hsForm, muc_phat_vang_mat: e.target.value })} />
-            <div className="flex justify-end gap-2 pt-2">
+          <form onSubmit={handleSaveHoSo} className="space-y-6">
+            {ALLOWANCE_GROUPS.map((group) => (
+              <div key={group.title}>
+                <h4 className="text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wide mb-2">{group.title}</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  {group.fields.map(([key, label]) => (
+                    <Input
+                      key={key}
+                      label={label}
+                      type="number"
+                      value={hsForm[key] ?? '0'}
+                      onChange={(e) => setHsForm({ ...hsForm, [key]: e.target.value })}
+                    />
+                  ))}
+                </div>
+              </div>
+            ))}
+
+            <Card className="p-4 grid grid-cols-2 gap-4">
+              <div>
+                <div className="text-xs text-[var(--color-text-muted)] uppercase">Tổng phụ cấp</div>
+                <div className="font-display text-lg font-semibold text-[var(--color-ink)]">{formatCurrency(tinhTongPhuCap(hsForm))}</div>
+              </div>
+              <div>
+                <div className="text-xs text-[var(--color-text-muted)] uppercase">Tổng thu nhập (chưa gồm ca đêm/OT/chuyến)</div>
+                <div className="font-display text-lg font-semibold text-[var(--color-accent-dark)]">{formatCurrency(tinhTongThuNhap(hsForm))}</div>
+              </div>
+            </Card>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-[var(--color-line)]">
               <Button type="button" variant="ghost" onClick={() => setHsModalOpen(false)}>Huỷ</Button>
               <Button type="submit" variant="accent" disabled={savingHs}>{savingHs ? 'Đang lưu...' : 'Lưu'}</Button>
             </div>

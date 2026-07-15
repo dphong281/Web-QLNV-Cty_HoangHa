@@ -3,8 +3,9 @@ import {
   getAllEmployees, createEmployee, updateEmployee, deactivateEmployee, importEmployeesFromExcel, ConflictError,
 } from '../lib/employeeQueries'
 import { KHOI_LABELS, TRANG_THAI_NV_LABELS, TRANG_THAI_NV_COLORS } from '../lib/format'
-import { NHAN_VIEN_SYNONYMS, NHAN_VIEN_REQUIRED, NHAN_VIEN_HEADERS } from '../lib/importSynonyms'
+import { NHAN_VIEN_IMPORT_SYNONYMS, NHAN_VIEN_REQUIRED, NHAN_VIEN_HEADERS } from '../lib/importSynonyms'
 import { cellValue, cellDateToIso, exportToExcel } from '../lib/excelImport'
+import { importContractStagesFromExcel } from '../lib/contractQueries'
 import { getRetirementWarning } from '../lib/retirement'
 import { computeHoSoCompletion, completionColor } from '../lib/hoSoChecklist'
 import ExcelImportModal from '../components/ExcelImportModal'
@@ -144,6 +145,35 @@ export default function NhanSu() {
     exportToExcel(NHAN_VIEN_HEADERS, rows, `DS_NhanVien_${new Date().toISOString().slice(0, 10)}.xlsx`, 'DS_NhanVien')
   }
 
+  const CONTRACT_STAGE_DEFS = [
+    { loaiHd: 'ThuViec', lanThu: null, soHd: 'Số HĐ TV', ngayKy: 'Ngày ký TV', batDau: 'Bắt đầu TV', ketThuc: 'Kết thúc TV', ketQua: 'Kết quả đánh giá' },
+    { loaiHd: 'XacDinhThoiHan', lanThu: 1, soHd: 'Số HĐ lần 1', ngayKy: 'Ngày ký lần 1', batDau: 'Bắt đầu lần 1', ketThuc: 'Kết thúc lần 1' },
+    { loaiHd: 'XacDinhThoiHan', lanThu: 2, soHd: 'Số HĐ lần 2', ngayKy: 'Ngày ký lần 2', batDau: 'Bắt đầu lần 2', ketThuc: 'Kết thúc lần 2' },
+    { loaiHd: 'KhongXacDinhThoiHan', lanThu: null, soHd: 'Số HĐ không xác định thời hạn', ngayKy: 'Ngày ký không xác định thời hạn', batDau: 'Bắt đầu không xác định thời hạn', ketThuc: null },
+  ]
+
+  function buildContractData(maNv, row, colMap) {
+    const stages = []
+    for (const def of CONTRACT_STAGE_DEFS) {
+      const soHd = cellValue(row, colMap, def.soHd, '')
+      const ngayHieuLuc = cellDateToIso(row, colMap, def.batDau)
+      const ngayKy = cellDateToIso(row, colMap, def.ngayKy) || ngayHieuLuc
+      if (!soHd && !ngayHieuLuc) continue // giai đoạn này không có dữ liệu trong file
+      stages.push({
+        loaiHd: def.loaiHd, lanThu: def.lanThu, soHd: soHd || null, ngayKy, ngayHieuLuc,
+        ngayHetHan: def.ketThuc ? cellDateToIso(row, colMap, def.ketThuc) : '',
+        ketQuaDanhGia: def.ketQua ? cellValue(row, colMap, def.ketQua, '') : undefined,
+      })
+    }
+    return {
+      maNv,
+      luongCoBan: cellValue(row, colMap, 'Lương chức danh (đóng BHXH)', 0),
+      phuCapTrachNhiem: cellValue(row, colMap, 'Phụ cấp trách nhiệm', 0),
+      phuCapDocHai: cellValue(row, colMap, 'Phụ cấp độc hại, nguy hiểm', 0),
+      stages,
+    }
+  }
+
   function buildImportRow(row, colMap) {
     const maNv = String(cellValue(row, colMap, 'Mã NV')).trim().toUpperCase()
     if (!maNv) return null
@@ -157,7 +187,7 @@ export default function NhanSu() {
     data['Khối'] = KHOI_LABEL_TO_CODE[data['Khối']] || data['Khối'] || 'VanPhong'
     data['Trạng thái'] = TRANG_THAI_LABEL_TO_CODE[data['Trạng thái']] || data['Trạng thái'] || 'DangLamViec'
     for (const h of DATE_FIELDS) data[h] = cellDateToIso(row, colMap, h) || null
-    return data
+    return { employee: data, contract: buildContractData(maNv, row, colMap) }
   }
 
   const filtered = list.filter((e) => {
@@ -272,11 +302,21 @@ export default function NhanSu() {
         open={importOpen}
         onClose={() => setImportOpen(false)}
         title="Nhập nhân viên từ Excel"
-        synonyms={NHAN_VIEN_SYNONYMS}
+        synonyms={NHAN_VIEN_IMPORT_SYNONYMS}
         requiredKeys={NHAN_VIEN_REQUIRED}
         buildRow={buildImportRow}
-        onImport={async (rows) => { const r = await importEmployeesFromExcel(rows); load(); return r }}
-        resultLabel={(r) => `Đã thêm mới ${r.inserted} nhân viên, cập nhật ${r.updated} nhân viên.${r.errors.length ? ` Có ${r.errors.length} dòng lỗi.` : ''}`}
+        onImport={async (rows) => {
+          const empResult = await importEmployeesFromExcel(rows.map((r) => r.employee))
+          const contractRows = rows.map((r) => r.contract).filter((c) => c.stages.length)
+          const hdResult = contractRows.length ? await importContractStagesFromExcel(contractRows) : { inserted: 0, updated: 0, errors: [] }
+          load()
+          return {
+            inserted: empResult.inserted, updated: empResult.updated,
+            hdInserted: hdResult.inserted, hdUpdated: hdResult.updated,
+            errors: [...empResult.errors, ...hdResult.errors],
+          }
+        }}
+        resultLabel={(r) => `Nhân sự: thêm mới ${r.inserted}, cập nhật ${r.updated}. Hợp đồng: thêm mới ${r.hdInserted}, cập nhật ${r.hdUpdated}.${r.errors.length ? ` Có ${r.errors.length} dòng lỗi.` : ''}`}
       />
     </div>
   )

@@ -19,8 +19,9 @@ const TRANG_THAI_HIEN_THI_COLORS = {
 
 const EMPTY_FORM = {
   maNv: '', loaiHd: 'ThuViec', ngayKy: '', ngayHieuLuc: '', ngayHetHan: '',
-  luongCoBan: '', phuCapDocHai: '0', phuCapTrachNhiem: '0',
+  luongCoBan: '', phuCapDocHai: '0', phuCapTrachNhiem: '0', ketQuaDanhGia: 'Chưa đánh giá',
 }
+const KET_QUA_DANH_GIA_OPTIONS = ['Chưa đánh giá', 'Đạt', 'Không đạt']
 
 export default function HopDong() {
   const [list, setList] = useState([])
@@ -62,6 +63,7 @@ export default function HopDong() {
       maNv: c.ma_nv, loaiHd: c.loai_hd, ngayKy: c.ngay_ky, ngayHieuLuc: c.ngay_hieu_luc,
       ngayHetHan: c.ngay_het_han || '', luongCoBan: String(c.luong_co_ban),
       phuCapDocHai: String(c.phu_cap_doc_hai), phuCapTrachNhiem: String(c.phu_cap_trach_nhiem),
+      ketQuaDanhGia: c.ket_qua_danh_gia || 'Chưa đánh giá',
       expectedUpdatedAt: c.updated_at,
     })
     setFormError(null)
@@ -167,7 +169,12 @@ export default function HopDong() {
                 <tr key={c.ma_hd} className="border-b border-[var(--color-line)] last:border-0 hover:bg-black/[0.015]">
                   <td className="px-5 py-3 font-medium text-[var(--color-ink)]">{c.ma_hd}</td>
                   <td className="px-5 py-3">{c.hoTen} <span className="text-xs text-[var(--color-text-muted)]">({c.ma_nv})</span></td>
-                  <td className="px-5 py-3 text-[var(--color-text-muted)]">{c.loaiHdHienThi}</td>
+                  <td className="px-5 py-3 text-[var(--color-text-muted)]">
+                    {c.loaiHdHienThi}
+                    {c.loai_hd === 'ThuViec' && c.ket_qua_danh_gia && c.ket_qua_danh_gia !== 'Chưa đánh giá' && (
+                      <Badge className={c.ket_qua_danh_gia === 'Đạt' ? 'bg-[var(--color-good)]/10 text-[var(--color-good)] ml-2' : 'bg-[var(--color-danger)]/10 text-[var(--color-danger)] ml-2'}>{c.ket_qua_danh_gia}</Badge>
+                    )}
+                  </td>
                   <td className="px-5 py-3 text-[var(--color-text-muted)]">{formatDate(c.ngay_hieu_luc)} → {c.ngay_het_han ? formatDate(c.ngay_het_han) : 'Không XĐ'}</td>
                   <td className="px-5 py-3 text-right font-medium">{formatCurrency(c.luong_co_ban)}</td>
                   <td className="px-5 py-3"><Badge className={TRANG_THAI_HIEN_THI_COLORS[c.trangThaiHienThi]}>{TRANG_THAI_HIEN_THI_LABELS[c.trangThaiHienThi]}</Badge></td>
@@ -207,6 +214,11 @@ export default function HopDong() {
             <Input label="Phụ cấp độc hại" type="number" value={form.phuCapDocHai} onChange={(e) => setForm({ ...form, phuCapDocHai: e.target.value })} />
             <Input label="Phụ cấp trách nhiệm" type="number" value={form.phuCapTrachNhiem} onChange={(e) => setForm({ ...form, phuCapTrachNhiem: e.target.value })} />
           </div>
+          {form.loaiHd === 'ThuViec' && (
+            <Select label="Kết quả đánh giá thử việc" value={form.ketQuaDanhGia} onChange={(e) => setForm({ ...form, ketQuaDanhGia: e.target.value })}>
+              {KET_QUA_DANH_GIA_OPTIONS.map((o) => <option key={o}>{o}</option>)}
+            </Select>
+          )}
           {formError && <ErrorState message={formError} />}
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="ghost" onClick={() => setModalOpen(false)}>Huỷ</Button>

@@ -126,7 +126,7 @@ export async function getContractsTable({ keyword, khoi, loaiHd, lanThu, trangTh
   return contracts
 }
 
-export async function createContractLogic({ maNv, loaiHd, ngayKy, ngayHieuLuc, ngayHetHan, luongCoBan, phuCapDocHai = 0, phuCapTrachNhiem = 0 }) {
+export async function createContractLogic({ maNv, loaiHd, ngayKy, ngayHieuLuc, ngayHetHan, luongCoBan, phuCapDocHai = 0, phuCapTrachNhiem = 0, ketQuaDanhGia }) {
   const employee = await getEmployeeByMa(maNv.trim())
   if (!employee) throw new Error(`Không tìm thấy nhân viên với mã '${maNv}'. Vui lòng kiểm tra lại.`)
 
@@ -155,6 +155,7 @@ export async function createContractLogic({ maNv, loaiHd, ngayKy, ngayHieuLuc, n
     luong_co_ban: await encryptValue(luong),
     phu_cap_doc_hai: await encryptValue(Number(phuCapDocHai) || 0),
     phu_cap_trach_nhiem: await encryptValue(Number(phuCapTrachNhiem) || 0),
+    ket_qua_danh_gia: loaiHd === 'ThuViec' ? (ketQuaDanhGia || 'Chưa đánh giá') : null,
   }
   const res = await supabase.from('hop_dong').insert(data).select().single()
   if (res.error) throw res.error
@@ -167,6 +168,98 @@ export async function createContractLogic({ maNv, loaiHd, ngayKy, ngayHieuLuc, n
   return decryptContract(res.data)
 }
 
+// Lấy lịch sử hợp đồng của 1 nhân viên, gộp theo 4 giai đoạn: Thử việc, Lần 1, Lần 2,
+// Không xác định thời hạn — đúng bố cục cột trong file Excel công ty. Mỗi giai đoạn lấy
+// bản ghi MỚI NHẤT (nếu có ký lại nhiều lần cùng giai đoạn, hiếm khi xảy ra).
+export async function getContractHistoryByNv(maNv) {
+  const res = await supabase.from('hop_dong').select('*').eq('ma_nv', maNv).order('ngay_ky', { ascending: false })
+  if (res.error) throw res.error
+  const contracts = await Promise.all(res.data.map(decryptContract))
+
+  function findLatest(pred) {
+    const found = contracts.filter(pred)
+    return found[0] || null
+  }
+
+  const stages = {
+    thuViec: findLatest((c) => c.loai_hd === 'ThuViec'),
+    lan1: findLatest((c) => c.loai_hd === 'XacDinhThoiHan' && c.lan_thu === 1),
+    lan2: findLatest((c) => c.loai_hd === 'XacDinhThoiHan' && c.lan_thu === 2),
+    khongXacDinhThoiHan: findLatest((c) => c.loai_hd === 'KhongXacDinhThoiHan'),
+  }
+  for (const key of Object.keys(stages)) {
+    const c = stages[key]
+    stages[key] = c ? { ...c, trangThaiHienThi: computeDisplayStatus(c) } : null
+  }
+  return stages
+}
+
+
+// ---------- NHẬP HÀNG LOẠT HỢP ĐỒNG TỪ EXCEL (dùng chung với nhập Nhân sự) ----------
+// input: mảng { maNv, luongCoBan, phuCapTrachNhiem, phuCapDocHai, stages: [{ loaiHd, lanThu, soHd, ngayKy, ngayHieuLuc, ngayHetHan, ketQuaDanhGia }] }
+// Giai đoạn cuối cùng có dữ liệu trong mỗi nhân viên -> đánh dấu DangHieuLuc, các giai đoạn
+// trước đó (đã bị thay thế) -> DaThanhLy. Chạy lại nhiều lần không tạo trùng — nếu đã có
+// hợp đồng cùng (mã NV, loại HĐ, lần thứ mấy) thì cập nhật thay vì thêm mới.
+export async function importContractStagesFromExcel(rows) {
+  const result = { inserted: 0, updated: 0, errors: [] }
+  const withStages = rows.filter((r) => r.stages?.length)
+  if (!withStages.length) return result
+
+  // Số thứ tự HĐ tiếp theo, dùng chung 1 bộ đếm cho cả batch để đỡ phải query từng dòng.
+  const countRes = await supabase.from('hop_dong').select('ma_hd', { count: 'exact', head: true })
+  let nextSeq = (countRes.count || 0) + 1
+
+  for (const row of withStages) {
+    try {
+      const maNv = row.maNv.trim().toUpperCase()
+      const existingRes = await supabase.from('hop_dong').select('*').eq('ma_nv', maNv)
+      if (existingRes.error) throw existingRes.error
+      const existing = existingRes.data
+
+      const luongCoBan = Number(row.luongCoBan) || 0
+      const phuCapTrachNhiem = Number(row.phuCapTrachNhiem) || 0
+      const phuCapDocHai = Number(row.phuCapDocHai) || 0
+
+      for (let i = 0; i < row.stages.length; i++) {
+        const stage = row.stages[i]
+        const isLast = i === row.stages.length - 1
+        const match = existing.find((c) => c.loai_hd === stage.loaiHd && (c.lan_thu ?? null) === (stage.lanThu ?? null))
+
+        const payload = {
+          ma_nv: maNv, loai_hd: stage.loaiHd, lan_thu: stage.lanThu,
+          ngay_ky: stage.ngayKy || null, ngay_hieu_luc: stage.ngayHieuLuc || stage.ngayKy || null,
+          ngay_het_han: stage.ngayHetHan || null,
+          trang_thai: isLast ? 'DangHieuLuc' : 'DaThanhLy',
+          luong_co_ban: await encryptValue(luongCoBan),
+          phu_cap_doc_hai: await encryptValue(phuCapDocHai),
+          phu_cap_trach_nhiem: await encryptValue(phuCapTrachNhiem),
+        }
+        if (stage.loaiHd === 'ThuViec') payload.ket_qua_danh_gia = stage.ketQuaDanhGia || 'Chưa đánh giá'
+
+        if (match) {
+          const upd = await supabase.from('hop_dong').update(payload).eq('ma_hd', match.ma_hd)
+          if (upd.error) throw upd.error
+          result.updated += 1
+        } else {
+          const maHd = stage.soHd || `HD${String(nextSeq).padStart(4, '0')}`
+          nextSeq += 1
+          const ins = await supabase.from('hop_dong').insert({ ma_hd: maHd, ...payload })
+          if (ins.error) throw ins.error
+          result.inserted += 1
+        }
+      }
+
+      if (luongCoBan > 0) {
+        await upsertHoSoLuong(maNv, { luong_co_ban: luongCoBan, phu_cap_co_dinh: phuCapTrachNhiem + phuCapDocHai })
+      }
+    } catch (err) {
+      result.errors.push([row.maNv, err.message])
+    }
+  }
+  return result
+}
+
+
 export class ConflictError extends Error {
   constructor() {
     super('Hợp đồng này đã bị người khác thay đổi kể từ khi bạn mở form. Vui lòng tải lại rồi thử lại.')
@@ -174,7 +267,7 @@ export class ConflictError extends Error {
   }
 }
 
-export async function updateContractLogic(maHd, { loaiHd, ngayHetHan, luongCoBan, phuCapDocHai = 0, phuCapTrachNhiem = 0, expectedUpdatedAt }) {
+export async function updateContractLogic(maHd, { loaiHd, ngayHetHan, luongCoBan, phuCapDocHai = 0, phuCapTrachNhiem = 0, ketQuaDanhGia, expectedUpdatedAt }) {
   const contractRes = await supabase.from('hop_dong').select('*').eq('ma_hd', maHd).single()
   if (contractRes.error) throw contractRes.error
   const contract = contractRes.data
@@ -188,6 +281,9 @@ export async function updateContractLogic(maHd, { loaiHd, ngayHetHan, luongCoBan
     luong_co_ban: await encryptValue(luong),
     phu_cap_doc_hai: await encryptValue(Number(phuCapDocHai) || 0),
     phu_cap_trach_nhiem: await encryptValue(Number(phuCapTrachNhiem) || 0),
+  }
+  if (loaiHd === 'ThuViec' || contract.loai_hd === 'ThuViec') {
+    data.ket_qua_danh_gia = ketQuaDanhGia || contract.ket_qua_danh_gia || 'Chưa đánh giá'
   }
   let query = supabase.from('hop_dong').update(data).eq('ma_hd', maHd)
   if (expectedUpdatedAt) query = query.eq('updated_at', expectedUpdatedAt)

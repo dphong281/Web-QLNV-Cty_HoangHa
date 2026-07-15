@@ -41,6 +41,35 @@ export const NHAN_VIEN_SYNONYMS = {
 export const NHAN_VIEN_HEADERS = Object.keys(NHAN_VIEN_SYNONYMS)
 export const NHAN_VIEN_REQUIRED = ['Mã NV', 'Họ tên']
 
+// Cột hợp đồng/lương trong file Excel gốc công ty — dùng thêm khi nhập ở trang Nhân sự
+// để tự tạo luôn hợp đồng theo từng giai đoạn (Thử việc/Lần 1/Lần 2/KXĐTH), không phải
+// nhập lại tay ở trang Hợp đồng. Không dùng cho Xuất Excel (export vẫn chỉ gồm thông tin cá nhân).
+export const HOP_DONG_IMPORT_SYNONYMS = {
+  'Số HĐ TV': ['so_hd_tv', 'so hd tv', 'ma_hd_tv'],
+  'Ngày ký TV': ['ngay_ky_tv', 'ngay ky tv'],
+  'Bắt đầu TV': ['bat_dau_tv', 'bat dau tv'],
+  'Kết thúc TV': ['ket_thuc_tv', 'ket thuc tv'],
+  'Kết quả đánh giá': ['ket_qua_danh_gia', 'ket qua danh gia', 'ket qua thu viec'],
+  'Số HĐ lần 1': ['so_hd_lan_1', 'so hd lan 1'],
+  'Ngày ký lần 1': ['ngay_ky_lan_1', 'ngay ky lan 1'],
+  'Bắt đầu lần 1': ['bat_dau_lan_1', 'bat dau lan 1'],
+  'Kết thúc lần 1': ['ket_thuc_lan_1', 'ket thuc lan 1'],
+  'Số HĐ lần 2': ['so_hd_lan_2', 'so hd lan 2'],
+  'Ngày ký lần 2': ['ngay_ky_lan_2', 'ngay ky lan 2'],
+  'Bắt đầu lần 2': ['bat_dau_lan_2', 'bat dau lan 2'],
+  'Kết thúc lần 2': ['ket_thuc_lan_2', 'ket thuc lan 2'],
+  'Số HĐ không xác định thời hạn': ['so_hd_khong_xac_dinh_thoi_han', 'so hd khong xac dinh thoi han', 'so hd kxdth'],
+  'Ngày ký không xác định thời hạn': ['ngay_ky_khong_xac_dinh_thoi_han', 'ngay ky khong xac dinh thoi han', 'ngay ky kxdth'],
+  'Bắt đầu không xác định thời hạn': ['bat_dau_khong_xac_dinh_thoi_han', 'bat dau khong xac dinh thoi han', 'bat dau kxdth'],
+  'Lương chức danh (đóng BHXH)': ['luong_chuc_danh', 'luong chuc danh', 'luong dong bhxh', 'luong co ban'],
+  'Phụ cấp trách nhiệm': ['phu_cap_trach_nhiem', 'phu cap trach nhiem'],
+  'Phụ cấp độc hại, nguy hiểm': ['phu_cap_doc_hai', 'phu cap doc hai', 'phu cap doc hai nguy hiem'],
+}
+
+// Synonyms dùng riêng cho việc DÒ CỘT khi nhập ở trang Nhân sự (gồm cả cột hợp đồng) —
+// NHAN_VIEN_SYNONYMS/HEADERS ở trên vẫn giữ nguyên cho Xuất Excel (chỉ thông tin cá nhân).
+export const NHAN_VIEN_IMPORT_SYNONYMS = { ...NHAN_VIEN_SYNONYMS, ...HOP_DONG_IMPORT_SYNONYMS }
+
 export const CHAM_CONG_RAW_SYNONYMS = {
   'Mã NV': ['ma_nv', 'ma nv', 'ma nhan vien', 'manv', 'employee_code'],
   'Ngày': ['ngay', 'ngay cham cong', 'date', 'ngay lam'],
