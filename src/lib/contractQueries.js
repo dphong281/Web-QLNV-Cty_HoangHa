@@ -29,10 +29,28 @@ async function decryptContract(c) {
   return result
 }
 
+// Sinh "Mã HĐ hệ thống" theo kiểu A1, A2, ... A99, B1, B2, ... B99, C1, ... — mỗi chữ cái
+// chứa tối đa 99 số, hết 99 thì sang chữ cái tiếp theo (dùng luôn cho AA, AB... nếu vượt quá Z).
+function seqToSystemCode(n) {
+  const letterIndex = Math.floor((n - 1) / 99)
+  const num = ((n - 1) % 99) + 1
+  return `${indexToLetters(letterIndex)}${num}`
+}
+function indexToLetters(index) {
+  let n = index + 1
+  let s = ''
+  while (n > 0) {
+    n -= 1
+    s = String.fromCharCode(65 + (n % 26)) + s
+    n = Math.floor(n / 26)
+  }
+  return s
+}
+
 async function generateMaHd() {
   const res = await supabase.from('hop_dong').select('ma_hd', { count: 'exact', head: true })
   if (res.error) throw res.error
-  return `HD${String((res.count || 0) + 1).padStart(4, '0')}`
+  return seqToSystemCode((res.count || 0) + 1)
 }
 
 async function countXacDinhThoiHan(maNv) {
@@ -237,7 +255,7 @@ export async function getContractHistoryTable() {
 // trước đó (đã bị thay thế) -> DaThanhLy. Chạy lại nhiều lần không tạo trùng — nếu đã có
 // hợp đồng cùng (mã NV, loại HĐ, lần thứ mấy) thì cập nhật thay vì thêm mới.
 export async function importContractStagesFromExcel(rows) {
-  const result = { inserted: 0, updated: 0, errors: [] }
+  const result = { inserted: 0, updated: 0, errors: [], warnings: [] }
   const withStages = rows.filter((r) => r.stages?.length)
   if (!withStages.length) return result
 
@@ -259,13 +277,22 @@ export async function importContractStagesFromExcel(rows) {
       for (let i = 0; i < row.stages.length; i++) {
         const stage = row.stages[i]
         if (!stage.ngayKy) continue // an toàn: không đủ ngày để tạo hợp đồng
+        let ngayHetHan = stage.ngayHetHan
+        if (ngayHetHan && ngayHetHan <= stage.ngayHieuLuc) {
+          // Ngày kết thúc trong Excel không hợp lệ (≤ ngày bắt đầu) — vẫn tạo hợp đồng,
+          // chỉ bỏ trống ngày kết thúc thay vì bỏ qua cả giai đoạn. Cần anh kiểm tra/sửa
+          // tay lại ngày kết thúc đúng cho hợp đồng này trong trang Hợp đồng.
+          result.warnings.push([row.maNv, `Giai đoạn ${stage.loaiHd}${stage.lanThu ? ' lần ' + stage.lanThu : ''}: ngày kết thúc (${ngayHetHan}) không hợp lệ so với ngày bắt đầu (${stage.ngayHieuLuc}) — đã tạo hợp đồng nhưng BỎ TRỐNG ngày kết thúc, cần vào sửa tay lại.`])
+          ngayHetHan = ''
+        }
         const isLast = i === row.stages.length - 1
         const match = existing.find((c) => c.loai_hd === stage.loaiHd && (c.lan_thu ?? null) === (stage.lanThu ?? null))
 
         const payload = {
           ma_nv: maNv, loai_hd: stage.loaiHd, lan_thu: stage.lanThu,
           ngay_ky: stage.ngayKy || null, ngay_hieu_luc: stage.ngayHieuLuc || stage.ngayKy || null,
-          ngay_het_han: stage.ngayHetHan || null,
+          ngay_het_han: ngayHetHan || null,
+          so_hd_goc: stage.soHd || null,
           trang_thai: isLast ? 'DangHieuLuc' : 'DaThanhLy',
           luong_co_ban: await encryptValue(luongCoBan),
           phu_cap_doc_hai: await encryptValue(phuCapDocHai),
@@ -278,7 +305,9 @@ export async function importContractStagesFromExcel(rows) {
           if (upd.error) throw upd.error
           result.updated += 1
         } else {
-          const maHd = stage.soHd || `HD${String(nextSeq).padStart(4, '0')}`
+          // Khoá chính LUÔN do hệ thống tự sinh (Mã HĐ hệ thống) — không dùng thẳng số HĐ
+          // trong Excel vì đó là số công ty tự đánh tay, không đảm bảo duy nhất toàn hệ thống.
+          const maHd = seqToSystemCode(nextSeq)
           nextSeq += 1
           const ins = await supabase.from('hop_dong').insert({ ma_hd: maHd, ...payload })
           if (ins.error) throw ins.error

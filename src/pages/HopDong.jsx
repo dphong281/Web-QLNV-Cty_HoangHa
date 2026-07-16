@@ -127,8 +127,8 @@ export default function HopDong() {
       alert('Không có hợp đồng nào sắp hết hạn.')
       return
     }
-    const headers = ['Mã HĐ', 'Mã NV', 'Họ tên', 'Khối', 'Loại HĐ', 'Ngày ký', 'Ngày hết hạn', 'Lương cơ bản']
-    const rows = expiring.map((c) => [c.ma_hd, c.ma_nv, c.hoTen, c.khoi, c.loaiHdHienThi, c.ngay_ky, c.ngay_het_han, c.luong_co_ban])
+    const headers = ['Mã HĐ hệ thống', 'Số HĐ gốc', 'Mã NV', 'Họ tên', 'Khối', 'Loại HĐ', 'Ngày ký', 'Ngày hết hạn', 'Lương cơ bản']
+    const rows = expiring.map((c) => [c.ma_hd, c.so_hd_goc || '', c.ma_nv, c.hoTen, c.khoi, c.loaiHdHienThi, c.ngay_ky, c.ngay_het_han, c.luong_co_ban])
     exportToExcel(headers, rows, `HopDongSapHetHan_${new Date().toISOString().slice(0, 10)}.xlsx`, 'HopDongSapHetHan')
   }
 
@@ -190,7 +190,7 @@ export default function HopDong() {
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-xs text-[var(--color-text-muted)] uppercase tracking-wide border-b border-[var(--color-line)]">
-                <th className="px-5 py-3 font-medium">Mã HĐ</th>
+                <th className="px-5 py-3 font-medium">Mã HĐ hệ thống</th>
                 <th className="px-5 py-3 font-medium">Nhân viên</th>
                 <th className="px-5 py-3 font-medium">Loại HĐ</th>
                 <th className="px-5 py-3 font-medium">Thời hạn</th>
@@ -202,7 +202,10 @@ export default function HopDong() {
             <tbody>
               {filtered.map((c) => (
                 <tr key={c.ma_hd} className="border-b border-[var(--color-line)] last:border-0 hover:bg-black/[0.015]">
-                  <td className="px-5 py-3 font-medium text-[var(--color-ink)]">{c.ma_hd}</td>
+                  <td className="px-5 py-3 font-medium text-[var(--color-ink)]">
+                    {c.ma_hd}
+                    {c.so_hd_goc && <div className="text-xs font-normal text-[var(--color-text-muted)]">Số gốc: {c.so_hd_goc}</div>}
+                  </td>
                   <td className="px-5 py-3">{c.hoTen} <span className="text-xs text-[var(--color-text-muted)]">({c.ma_nv})</span></td>
                   <td className="px-5 py-3 text-[var(--color-text-muted)]">
                     {c.loaiHdHienThi}

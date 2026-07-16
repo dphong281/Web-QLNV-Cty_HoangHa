@@ -314,15 +314,16 @@ export default function NhanSu() {
         onImport={async (rows) => {
           const empResult = await importEmployeesFromExcel(rows.map((r) => r.employee))
           const contractRows = rows.map((r) => r.contract).filter((c) => c.stages.length)
-          const hdResult = contractRows.length ? await importContractStagesFromExcel(contractRows) : { inserted: 0, updated: 0, errors: [] }
+          const hdResult = contractRows.length ? await importContractStagesFromExcel(contractRows) : { inserted: 0, updated: 0, errors: [], warnings: [] }
           load()
           return {
             inserted: empResult.inserted, updated: empResult.updated,
             hdInserted: hdResult.inserted, hdUpdated: hdResult.updated,
             errors: [...empResult.errors, ...hdResult.errors],
+            warnings: hdResult.warnings,
           }
         }}
-        resultLabel={(r) => `Nhân sự: thêm mới ${r.inserted}, cập nhật ${r.updated}. Hợp đồng: thêm mới ${r.hdInserted}, cập nhật ${r.hdUpdated}.${r.errors.length ? ` Có ${r.errors.length} dòng lỗi.` : ''}`}
+        resultLabel={(r) => `Nhân sự: thêm mới ${r.inserted}, cập nhật ${r.updated}. Hợp đồng: thêm mới ${r.hdInserted}, cập nhật ${r.hdUpdated}.${r.errors.length ? ` Có ${r.errors.length} dòng lỗi (không tạo được).` : ''}${r.warnings?.length ? ` Có ${r.warnings.length} hợp đồng tạo được nhưng cần kiểm tra lại ngày kết thúc.` : ''}`}
       />
     </div>
   )

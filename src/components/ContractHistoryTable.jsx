@@ -21,7 +21,7 @@ const COL_LABELS = { soHd: 'Số HĐ', ngayKy: 'Ngày ký', batDau: 'Bắt đầ
 
 function renderCell(contract, col) {
   if (!contract) return <span className="text-[var(--color-text-muted)]">—</span>
-  if (col === 'soHd') return contract.ma_hd
+  if (col === 'soHd') return contract.so_hd_goc || contract.ma_hd
   if (col === 'ngayKy') return formatDate(contract.ngay_ky)
   if (col === 'batDau') return formatDate(contract.ngay_hieu_luc)
   if (col === 'ketThuc') return contract.ngay_het_han ? formatDate(contract.ngay_het_han) : 'Không XĐ'

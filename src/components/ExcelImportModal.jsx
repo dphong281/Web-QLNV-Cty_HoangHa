@@ -118,6 +118,11 @@ export default function ExcelImportModal({
                 {result.errors.map(([code, msg], i) => <div key={i}>{code}: {msg}</div>)}
               </div>
             )}
+            {result.warnings?.length > 0 && (
+              <div className="rounded-lg bg-[var(--color-warning)]/10 border border-[var(--color-warning)]/25 text-sm px-3 py-2 text-[var(--color-warning)] max-h-40 overflow-y-auto">
+                {result.warnings.map(([code, msg], i) => <div key={i}>{code}: {msg}</div>)}
+              </div>
+            )}
             <div className="flex justify-end gap-2">
               <Button variant="ghost" onClick={reset}>Nhập file khác</Button>
               <Button variant="accent" onClick={handleClose}>Xong</Button>

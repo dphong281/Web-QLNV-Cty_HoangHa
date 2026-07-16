@@ -87,10 +87,28 @@ export function cellDateToIso(row, colMap, standardKey) {
   const m = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/)
   if (m) {
     const [, d, mo, y] = m
-    return `${y}-${mo.padStart(2, '0')}-${d.padStart(2, '0')}`
+    let dd = Number(d), mm = Number(mo), yy = Number(y)
+    if (!isRealDate(yy, mm, dd)) {
+      // Ngày không có thật (VD 29/2 năm không nhuận) — tự lùi về ngày hợp lệ gần nhất
+      // trong cùng tháng thay vì bỏ trống, để không mất hẳn dữ liệu gốc.
+      if (mm === 2 && dd === 29) dd = 28
+      else return ''
+      if (!isRealDate(yy, mm, dd)) return ''
+    }
+    return `${yy}-${String(mm).padStart(2, '0')}-${String(dd).padStart(2, '0')}`
   }
-  if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return text
+  if (/^\d{4}-\d{2}-\d{2}$/.test(text)) {
+    const [y, mo, d] = text.split('-').map(Number)
+    return isRealDate(y, mo, d) ? text : ''
+  }
   return ''
+}
+
+// Kiểm tra ngày/tháng/năm có thật trong lịch, không chỉ đúng định dạng (VD chặn 29/02 năm
+// không nhuận, 31/04, v.v.) — new Date() sẽ tự "lăn" ngày sai thành ngày kế tiếp thay vì báo lỗi.
+function isRealDate(y, mo, d) {
+  const date = new Date(y, mo - 1, d)
+  return date.getFullYear() === y && date.getMonth() === mo - 1 && date.getDate() === d
 }
 
 // Dùng cho các cột lưu ngày dạng CHỮ "dd/mm/yyyy" trong DB (VD: Ngày sinh, Ngày cấp CCCD) —
