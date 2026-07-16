@@ -1,6 +1,6 @@
 import { supabase } from './supabase'
 
-export async function getNhatKyList(limit = 200) {
+export async function getNhatKyList(limit = 50) {
   const res = await supabase.from('nhat_ky_hoat_dong').select('*').order('created_at', { ascending: false }).limit(limit)
   if (res.error) throw res.error
   return res.data
