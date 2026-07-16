@@ -17,11 +17,11 @@ const STAGE_GROUPS = [
   { key: 'lan2', label: 'Xác định thời hạn — Lần 2', cols: ['soHd', 'ngayKy', 'batDau', 'ketThuc', 'trangThai'] },
   { key: 'khongXacDinhThoiHan', label: 'Không xác định thời hạn', cols: ['soHd', 'ngayKy', 'batDau', 'trangThai'] },
 ]
-const COL_LABELS = { soHd: 'Số HĐ', ngayKy: 'Ngày ký', batDau: 'Bắt đầu', ketThuc: 'Kết thúc', trangThai: 'Trạng thái', ketQua: 'Đánh giá' }
+const COL_LABELS = { soHd: 'Mã HĐ', ngayKy: 'Ngày ký', batDau: 'Bắt đầu', ketThuc: 'Kết thúc', trangThai: 'Trạng thái', ketQua: 'Đánh giá' }
 
 function renderCell(contract, col) {
   if (!contract) return <span className="text-[var(--color-text-muted)]">—</span>
-  if (col === 'soHd') return contract.so_hd_goc || contract.ma_hd
+  if (col === 'soHd') return contract.so_hd_goc || <span className="text-[var(--color-text-muted)]">—</span>
   if (col === 'ngayKy') return formatDate(contract.ngay_ky)
   if (col === 'batDau') return formatDate(contract.ngay_hieu_luc)
   if (col === 'ketThuc') return contract.ngay_het_han ? formatDate(contract.ngay_het_han) : 'Không XĐ'
