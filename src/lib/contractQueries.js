@@ -147,7 +147,7 @@ export async function getContractsTable({ keyword, khoi, loaiHd, lanThu, trangTh
   return contracts
 }
 
-export async function createContractLogic({ maNv, loaiHd, ngayKy, ngayHieuLuc, ngayHetHan, luongCoBan, phuCapDocHai = 0, phuCapTrachNhiem = 0, ketQuaDanhGia }) {
+export async function createContractLogic({ maNv, soHdGoc, loaiHd, ngayKy, ngayHieuLuc, ngayHetHan, luongCoBan, phuCapDocHai = 0, phuCapTrachNhiem = 0, ketQuaDanhGia }) {
   const employee = await getEmployeeByMa(maNv.trim())
   if (!employee) throw new Error(`Không tìm thấy nhân viên với mã '${maNv}'. Vui lòng kiểm tra lại.`)
 
@@ -171,7 +171,7 @@ export async function createContractLogic({ maNv, loaiHd, ngayKy, ngayHieuLuc, n
 
   const maHd = await generateMaHd()
   const data = {
-    ma_hd: maHd, ma_nv: maNv.trim(), loai_hd: loaiHd, lan_thu: lanThu,
+    ma_hd: maHd, ma_nv: maNv.trim(), so_hd_goc: soHdGoc?.trim() || null, loai_hd: loaiHd, lan_thu: lanThu,
     ngay_ky: ngayKy, ngay_hieu_luc: ngayHieuLuc, ngay_het_han: ngayHetHan || null,
     luong_co_ban: await encryptValue(luong),
     phu_cap_doc_hai: await encryptValue(Number(phuCapDocHai) || 0),
@@ -333,7 +333,7 @@ export class ConflictError extends Error {
   }
 }
 
-export async function updateContractLogic(maHd, { loaiHd, ngayHetHan, luongCoBan, phuCapDocHai = 0, phuCapTrachNhiem = 0, ketQuaDanhGia, expectedUpdatedAt }) {
+export async function updateContractLogic(maHd, { soHdGoc, loaiHd, ngayHetHan, luongCoBan, phuCapDocHai = 0, phuCapTrachNhiem = 0, ketQuaDanhGia, expectedUpdatedAt }) {
   const contractRes = await supabase.from('hop_dong').select('*').eq('ma_hd', maHd).single()
   if (contractRes.error) throw contractRes.error
   const contract = contractRes.data
@@ -343,7 +343,7 @@ export async function updateContractLogic(maHd, { loaiHd, ngayHetHan, luongCoBan
   if (Number.isNaN(luong)) throw new Error('Lương cơ bản phải là số.')
 
   const data = {
-    loai_hd: loaiHd, ngay_het_han: ngayHetHan || null,
+    loai_hd: loaiHd, so_hd_goc: soHdGoc?.trim() || null, ngay_het_han: ngayHetHan || null,
     luong_co_ban: await encryptValue(luong),
     phu_cap_doc_hai: await encryptValue(Number(phuCapDocHai) || 0),
     phu_cap_trach_nhiem: await encryptValue(Number(phuCapTrachNhiem) || 0),

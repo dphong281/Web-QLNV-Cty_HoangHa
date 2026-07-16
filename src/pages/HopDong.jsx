@@ -19,7 +19,7 @@ const TRANG_THAI_HIEN_THI_COLORS = {
 }
 
 const EMPTY_FORM = {
-  maNv: '', loaiHd: 'ThuViec', ngayKy: '', ngayHieuLuc: '', ngayHetHan: '',
+  maNv: '', soHdGoc: '', loaiHd: 'ThuViec', ngayKy: '', ngayHieuLuc: '', ngayHetHan: '',
   luongCoBan: '', phuCapDocHai: '0', phuCapTrachNhiem: '0', ketQuaDanhGia: 'Chưa đánh giá',
 }
 const KET_QUA_DANH_GIA_OPTIONS = ['Chưa đánh giá', 'Đạt', 'Không đạt']
@@ -76,7 +76,7 @@ export default function HopDong() {
   function openEdit(c) {
     setEditing(c)
     setForm({
-      maNv: c.ma_nv, loaiHd: c.loai_hd, ngayKy: c.ngay_ky, ngayHieuLuc: c.ngay_hieu_luc,
+      maNv: c.ma_nv, soHdGoc: c.so_hd_goc || '', loaiHd: c.loai_hd, ngayKy: c.ngay_ky, ngayHieuLuc: c.ngay_hieu_luc,
       ngayHetHan: c.ngay_het_han || '', luongCoBan: String(c.luong_co_ban),
       phuCapDocHai: String(c.phu_cap_doc_hai), phuCapTrachNhiem: String(c.phu_cap_trach_nhiem),
       ketQuaDanhGia: c.ket_qua_danh_gia || 'Chưa đánh giá',
@@ -238,6 +238,7 @@ export default function HopDong() {
           {!editing && (
             <Input label="Mã nhân viên *" required value={form.maNv} onChange={(e) => setForm({ ...form, maNv: e.target.value })} placeholder="VD: HH011" />
           )}
+          <Input label="Mã HĐ" value={form.soHdGoc} onChange={(e) => setForm({ ...form, soHdGoc: e.target.value })} placeholder="Số hợp đồng công ty tự đánh, VD: 015/2026 (để trống nếu không có)" />
           <div className="grid grid-cols-2 gap-4">
             <Select label="Loại hợp đồng" value={form.loaiHd} onChange={(e) => setForm({ ...form, loaiHd: e.target.value })}>
               {Object.entries(LOAI_HD_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}

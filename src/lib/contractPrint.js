@@ -1,6 +1,6 @@
 import PizZip from 'pizzip'
 import Docxtemplater from 'docxtemplater'
-import { decryptValue } from './fernetCrypto'
+import { parseFlexibleDate } from './format'
 
 // ---------- Ánh xạ Khối -> hậu tố file mẫu ----------
 const KHOI_TO_SUFFIX = { VanPhong: 'VP', CayXang: 'CHXD', TaiXe: 'TAU' }
@@ -84,16 +84,14 @@ export function getTemplateKey(loaiVanBan, khoi) {
 function pad2(n) { return String(n).padStart(2, '0') }
 
 function splitDate(value) {
-  if (!value) return { Ngay: '……', Thang: '……', Nam: '………' }
-  const d = new Date(value)
-  if (Number.isNaN(d.getTime())) return { Ngay: '……', Thang: '……', Nam: '………' }
+  const d = parseFlexibleDate(value)
+  if (!d) return { Ngay: '……', Thang: '……', Nam: '………' }
   return { Ngay: pad2(d.getDate()), Thang: pad2(d.getMonth() + 1), Nam: String(d.getFullYear()) }
 }
 
 function formatDDMMYYYY(value) {
-  if (!value) return '……/……/………'
-  const d = new Date(value)
-  if (Number.isNaN(d.getTime())) return '……/……/………'
+  const d = parseFlexibleDate(value)
+  if (!d) return '……/……/………'
   return `${pad2(d.getDate())}/${pad2(d.getMonth() + 1)}/${d.getFullYear()}`
 }
 
@@ -136,15 +134,17 @@ export async function prefillFromEmployee(emp, contract) {
     CCCD: emp?.['Số CCCD'] || '',
     NgayCap: emp?.['Ngày cấp CCCD'] || '',
     NoiCap: emp?.['Nơi cấp'] || '',
-    DiaChi: emp?.['Địa chỉ thường trú'] || '',
-    DienThoai: emp?.['Số ĐT'] ? await decryptValue(emp['Số ĐT']) : '',
-    Email: emp?.['Email'] || '',
+    DiaChi: emp?.['Địa chỉ thường trú'] || emp?.['Địa chỉ hiện tại'] || '',
+    DienThoai: emp?.['Số ĐT'] || '',
+    Email: emp?.['Email'] || emp?.['Email công ty'] || '',
     BoPhan: emp?.['Nơi làm việc'] || '',
     ChucDanh: emp?.['Chức vụ'] || '',
     TrinhDo: emp?.['Trình độ'] || '',
   }
   if (contract) {
-    values.SoHopDong = contract.ma_hd || ''
+    // Ưu tiên số HĐ công ty tự đánh (so_hd_goc) — đây mới là số thật sự cần in ra văn bản,
+    // không phải mã hệ thống (ma_hd) chỉ dùng nội bộ để tra cứu.
+    values.SoHopDong = contract.so_hd_goc || contract.ma_hd || ''
     values.NgayKy = contract.ngay_ky || ''
     values.NgayBatDau = contract.ngay_hieu_luc || ''
     values.NgayKetThuc = contract.ngay_het_han || ''
