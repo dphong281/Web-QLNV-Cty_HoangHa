@@ -126,13 +126,22 @@ export function buildDocxValues(fields, formValues) {
   return out
 }
 
+// Ngày sinh/Ngày cấp CCCD lưu ở nhan_vien dạng CHỮ "dd/mm/yyyy" — ô <input type="date">
+// của trình duyệt chỉ nhận value dạng "yyyy-mm-dd", nếu đưa thẳng dd/mm/yyyy vào sẽ bị
+// trình duyệt âm thầm bỏ qua (hiển thị trống, không báo lỗi gì).
+function toIsoForDateInput(value) {
+  const d = parseFlexibleDate(value)
+  if (!d) return ''
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`
+}
+
 // Điền sẵn control field từ dữ liệu nhân viên (và hợp đồng đang có, nếu có) — người dùng vẫn sửa được trước khi in.
 export async function prefillFromEmployee(emp, contract) {
   const values = {
     HoTen: emp?.['Họ tên'] || '',
-    NgaySinh: emp?.['Ngày sinh'] || '',
+    NgaySinh: toIsoForDateInput(emp?.['Ngày sinh']),
     CCCD: emp?.['Số CCCD'] || '',
-    NgayCap: emp?.['Ngày cấp CCCD'] || '',
+    NgayCap: toIsoForDateInput(emp?.['Ngày cấp CCCD']),
     NoiCap: emp?.['Nơi cấp'] || '',
     DiaChi: emp?.['Địa chỉ thường trú'] || emp?.['Địa chỉ hiện tại'] || '',
     DienThoai: emp?.['Số ĐT'] || '',
