@@ -8,7 +8,7 @@ import { NHAN_VIEN_IMPORT_SYNONYMS, NHAN_VIEN_REQUIRED, NHAN_VIEN_HEADERS } from
 import { cellValue, cellDateToIso, cellDateToDDMMYYYY, exportToExcel } from '../lib/excelImport'
 import { importContractStagesFromExcel } from '../lib/contractQueries'
 import { getRetirementWarning } from '../lib/retirement'
-import { computeHoSoCompletion, completionColor } from '../lib/hoSoChecklist'
+import { HO_SO_CHECKLIST_ITEMS, computeHoSoCompletion, completionColor } from '../lib/hoSoChecklist'
 import ExcelImportModal from '../components/ExcelImportModal'
 import NhanVienFormModal from '../components/NhanVienFormModal'
 import NhanVienDetailModal from '../components/NhanVienDetailModal'
@@ -216,6 +216,20 @@ export default function NhanSu() {
   // ô Excel định dạng ngày sẽ bị lưu thành chuỗi rác kiểu "Fri Jul 23 2021 00:00:00 GMT+0700...".
   const TEXT_DATE_FIELDS = ['Ngày sinh', 'Ngày cấp CCCD']
 
+  // Nhận biết ô đánh dấu "đã có" theo nhiều kiểu ghi khác nhau trong Excel — Có/X/Đã có/1...
+  function laDaCo(raw) {
+    const v = String(raw ?? '').trim().toLowerCase()
+    return ['có', 'co', 'x', '1', 'đã có', 'da co', 'yes', 'true'].includes(v)
+  }
+
+  function buildHoSoGiayTo(row, colMap) {
+    const hoSo = {}
+    for (const item of HO_SO_CHECKLIST_ITEMS) {
+      hoSo[item.key] = laDaCo(cellValue(row, colMap, item.label, ''))
+    }
+    return hoSo
+  }
+
   function buildImportRow(row, colMap) {
     const maNv = String(cellValue(row, colMap, 'Mã NV')).trim().toUpperCase()
     if (!maNv) return null
@@ -230,6 +244,7 @@ export default function NhanSu() {
     data['Khối'] = KHOI_LABEL_TO_CODE[data['Khối']] || data['Khối'] || 'VanPhong'
     data['Trạng thái'] = TRANG_THAI_LABEL_TO_CODE[data['Trạng thái']] || data['Trạng thái'] || 'DangLamViec'
     for (const h of DATE_FIELDS) data[h] = cellDateToIso(row, colMap, h) || null
+    data['Hồ sơ giấy tờ'] = buildHoSoGiayTo(row, colMap)
     return { employee: data, contract: buildContractData(maNv, row, colMap) }
   }
 

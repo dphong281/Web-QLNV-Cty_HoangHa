@@ -66,9 +66,27 @@ export const HOP_DONG_IMPORT_SYNONYMS = {
   'Phụ cấp độc hại, nguy hiểm': ['phu_cap_doc_hai', 'phu cap doc hai', 'phu cap doc hai nguy hiem'],
 }
 
+// Cột checklist hồ sơ giấy tờ (Có/Không) trong file Excel gốc — dùng riêng để build "Hồ sơ
+// giấy tờ" (jsonb), KHÔNG gộp vào NHAN_VIEN_HEADERS/export vì đây không phải text đơn thuần.
+export const HO_SO_GIAY_TO_SYNONYMS = {
+  'Sơ yếu lý lịch': ['so yeu ly lich'],
+  'Giấy khám sức khỏe': ['giay kham suc khoe'],
+  'Bằng cấp, chứng chỉ': ['bang cap chung chi', 'bang cap', 'chung chi'],
+  'Giấy xác nhận cư trú': ['giay xac nhan cu tru'],
+  'Giấy xác nhận dân sự / lý lịch tư pháp': ['giay xac nhan dan su ly lich tu phap', 'ly lich tu phap'],
+  'Bản sao CCCD': ['ban sao cccd'],
+  'Bản sao giấy khai sinh': ['ban sao giay khai sinh', 'ban sao khai sinh'],
+  'Bản sao khai sinh các con': ['ban sao khai sinh cac con'],
+  'Sổ BHXH': ['so bhxh'],
+  'Đơn xin việc': ['don xin viec'],
+  'Ảnh 3x4': ['anh 3x4', 'anh the'],
+  'Cam kết bảo mật thông tin': ['cam ket bao mat thong tin', 'cam ket bao mat'],
+  'Đơn xin gia nhập công đoàn': ['don xin gia nhap cong doan', 'gia nhap cong doan'],
+}
+
 // Synonyms dùng riêng cho việc DÒ CỘT khi nhập ở trang Nhân sự (gồm cả cột hợp đồng) —
 // NHAN_VIEN_SYNONYMS/HEADERS ở trên vẫn giữ nguyên cho Xuất Excel (chỉ thông tin cá nhân).
-export const NHAN_VIEN_IMPORT_SYNONYMS = { ...NHAN_VIEN_SYNONYMS, ...HOP_DONG_IMPORT_SYNONYMS }
+export const NHAN_VIEN_IMPORT_SYNONYMS = { ...NHAN_VIEN_SYNONYMS, ...HOP_DONG_IMPORT_SYNONYMS, ...HO_SO_GIAY_TO_SYNONYMS }
 
 export const CHAM_CONG_RAW_SYNONYMS = {
   'Mã NV': ['ma_nv', 'ma nv', 'ma nhan vien', 'manv', 'employee_code'],

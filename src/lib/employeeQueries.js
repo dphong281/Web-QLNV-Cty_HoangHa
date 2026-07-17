@@ -142,8 +142,9 @@ export async function importEmployeesFromExcel(rows) {
   const result = { inserted: 0, updated: 0, errors: [] }
   let existingCodes
   try {
-    const existing = await getAllEmployees()
-    existingCodes = new Set(existing.map((e) => e['Mã NV']))
+    const res = await supabase.from('nhan_vien').select('"Mã NV"')
+    if (res.error) throw res.error
+    existingCodes = new Set(res.data.map((e) => e['Mã NV']))
   } catch (err) {
     result.errors.push(['(tải danh sách hiện có)', err.message])
     return result
