@@ -1,23 +1,15 @@
-import { Suspense, lazy } from 'react'
+import { Suspense, useEffect } from 'react'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
 import Layout, { isItemVisible } from './components/Layout'
 import Login from './pages/Login'
-
-// Tải theo từng trang (code splitting) — vào Nhân sự không phải tải kèm code
-// của Kho/Chuyến hàng/in ấn... giúp trang đầu tiên tải nhanh hơn hẳn.
-const Dashboard = lazy(() => import('./pages/Dashboard'))
-const NhanSu = lazy(() => import('./pages/NhanSu'))
-const HopDong = lazy(() => import('./pages/HopDong'))
-const CaKip = lazy(() => import('./pages/CaKip'))
-const ChamCong = lazy(() => import('./pages/ChamCong'))
-const Luong = lazy(() => import('./pages/Luong'))
-const ChuyenHang = lazy(() => import('./pages/ChuyenHang'))
-const Kho = lazy(() => import('./pages/Kho'))
-const KhachHang = lazy(() => import('./pages/KhachHang'))
-const TaiKhoan = lazy(() => import('./pages/TaiKhoan'))
-const CaiDat = lazy(() => import('./pages/CaiDat'))
-const NhatKy = lazy(() => import('./pages/NhatKy'))
+import Dashboard from './pages/Dashboard'
+import {
+  LazyNhanSu as NhanSu, LazyHopDong as HopDong, LazyCaKip as CaKip,
+  LazyChamCong as ChamCong, LazyLuong as Luong, LazyChuyenHang as ChuyenHang, LazyKho as Kho,
+  LazyKhachHang as KhachHang, LazyTaiKhoan as TaiKhoan, LazyCaiDat as CaiDat, LazyNhatKy as NhatKy,
+  preloadPage,
+} from './pages/lazyPages'
 
 function PageLoading() {
   return <div className="p-8 text-sm text-[var(--color-text-muted)]">Đang tải...</div>
@@ -36,6 +28,19 @@ function RouteGuard({ children }) {
 
 export default function App() {
   const { user, loading } = useAuth()
+
+  // Sau khi đăng nhập xong, lúc trình duyệt rảnh thì âm thầm tải trước 2 trang hay dùng
+  // nhất (Nhân sự, Hợp đồng) — không chặn hiển thị Tổng quan, chỉ tranh thủ lúc rảnh.
+  useEffect(() => {
+    if (!user) return
+    const run = () => { preloadPage('/nhan-su'); preloadPage('/hop-dong') }
+    if ('requestIdleCallback' in window) {
+      const id = window.requestIdleCallback(run)
+      return () => window.cancelIdleCallback(id)
+    }
+    const t = setTimeout(run, 1500)
+    return () => clearTimeout(t)
+  }, [user])
 
   if (loading) {
     return (

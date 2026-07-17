@@ -27,6 +27,7 @@ export default function CaiDat() {
         {isAdmin && <LichBackupSection />}
         {isAdmin && <SaoLuuThuCongSection />}
         {isAdmin && <MaHoaLaiSection />}
+        {isAdmin && <CauHinhLuongSection />}
       </div>
     </div>
   )
@@ -77,6 +78,70 @@ function MaHoaLaiSection() {
       {done && <div className="text-sm text-[var(--color-good)] mb-3">Đã mã hoá lại xong toàn bộ.</div>}
       {error && <ErrorState message={error} />}
       <Button variant="accent" onClick={handleRun} disabled={running}>{running ? 'Đang mã hoá...' : 'Mã hoá lại toàn bộ'}</Button>
+    </Card>
+  )
+}
+
+// ============================================================
+// CẤU HÌNH TÍNH LƯƠNG — mức đóng BHXH/BHYT/BHTN và giảm trừ gia cảnh thuế TNCN hay thay đổi
+// theo luật, để admin tự chỉnh khi có Nghị định/Luật mới thay vì phải sửa code.
+// ============================================================
+function CauHinhLuongSection() {
+  const [form, setForm] = useState(null)
+  const [saving, setSaving] = useState(false)
+  const [message, setMessage] = useState(null)
+
+  useEffect(() => {
+    (async () => {
+      const all = await getAllSettings()
+      const map = Object.fromEntries(all.map((s) => [s.khoa, s.gia_tri]))
+      setForm({
+        luong_co_so: map.luong_co_so || '2530000',
+        luong_toi_thieu_vung: map.luong_toi_thieu_vung || '4680000',
+        giam_tru_ban_than: map.giam_tru_ban_than || '15500000',
+        giam_tru_nguoi_phu_thuoc: map.giam_tru_nguoi_phu_thuoc || '6200000',
+      })
+    })()
+  }, [])
+
+  async function handleSave(e) {
+    e.preventDefault()
+    setSaving(true)
+    setMessage(null)
+    try {
+      await Promise.all([
+        setValue('luong_co_so', form.luong_co_so, 'Lương cơ sở (đồng/tháng) — dùng tính trần đóng BHXH/BHYT (= 20 lần)'),
+        setValue('luong_toi_thieu_vung', form.luong_toi_thieu_vung, 'Lương tối thiểu vùng nơi công ty đóng trụ sở (đồng/tháng) — dùng tính trần đóng BHTN (= 20 lần)'),
+        setValue('giam_tru_ban_than', form.giam_tru_ban_than, 'Giảm trừ gia cảnh cho bản thân người nộp thuế (đồng/tháng)'),
+        setValue('giam_tru_nguoi_phu_thuoc', form.giam_tru_nguoi_phu_thuoc, 'Giảm trừ gia cảnh cho mỗi người phụ thuộc (đồng/tháng)'),
+      ])
+      setMessage({ type: 'success', text: 'Đã lưu. Áp dụng cho các lần "Tính lương" tiếp theo (không ảnh hưởng kỳ lương đã tính trước đó).' })
+    } catch (err) {
+      setMessage({ type: 'error', text: err.message })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (!form) return <Card className="p-5"><LoadingState /></Card>
+
+  return (
+    <Card className="p-5">
+      <h3 className="font-display font-semibold text-[var(--color-ink)] mb-1">Cấu hình tính lương (BHXH/BHYT/BHTN, thuế TNCN)</h3>
+      <p className="text-sm text-[var(--color-text-muted)] mb-4">
+        Các mức này do Nhà nước quy định và thay đổi theo thời gian — chỉnh lại đây khi có Nghị định/Luật mới,
+        không cần sửa code. Mặc định đang để theo mức hiện hành.
+      </p>
+      <form onSubmit={handleSave} className="grid grid-cols-2 gap-4 mb-3">
+        <Input label="Lương cơ sở (đồng/tháng)" type="number" value={form.luong_co_so} onChange={(e) => setForm({ ...form, luong_co_so: e.target.value })} />
+        <Input label="Lương tối thiểu vùng (đồng/tháng)" type="number" value={form.luong_toi_thieu_vung} onChange={(e) => setForm({ ...form, luong_toi_thieu_vung: e.target.value })} />
+        <Input label="Giảm trừ bản thân (đồng/tháng)" type="number" value={form.giam_tru_ban_than} onChange={(e) => setForm({ ...form, giam_tru_ban_than: e.target.value })} />
+        <Input label="Giảm trừ mỗi người phụ thuộc (đồng/tháng)" type="number" value={form.giam_tru_nguoi_phu_thuoc} onChange={(e) => setForm({ ...form, giam_tru_nguoi_phu_thuoc: e.target.value })} />
+        <div className="col-span-2 flex items-center gap-3">
+          <Button type="submit" variant="accent" disabled={saving}>{saving ? 'Đang lưu...' : 'Lưu'}</Button>
+          {message && <span className={`text-sm ${message.type === 'error' ? 'text-[var(--color-danger)]' : 'text-[var(--color-good)]'}`}>{message.text}</span>}
+        </div>
+      </form>
     </Card>
   )
 }

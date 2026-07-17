@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { preloadPage } from '../pages/lazyPages'
 
 const NAV_ITEMS = [
   { to: '/', label: 'Tổng quan', end: true },
@@ -51,6 +52,7 @@ export default function Layout({ children }) {
               key={to}
               to={to}
               end={end}
+              onMouseEnter={() => preloadPage(to)}
               className={({ isActive }) =>
                 `block px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                   isActive

@@ -93,7 +93,7 @@ export default function Luong() {
         // Chưa tính lương kỳ này — hiện "xem trước" danh sách NV đang làm việc, kèm Lương
         // cơ bản/Phụ cấp đã có sẵn ở Đơn giá lương (nếu đã khai báo); các cột phát sinh theo
         // kỳ (ca đêm/OT/chuyến/khấu trừ/thực lãnh) để trống vì chưa tính cho kỳ này.
-        const employees = await getActiveEmployeesWithRate()
+        const employees = await getActiveEmployeesWithRate(month, year)
         setRows(employees.map((e) => ({
           payrollId: null, maNv: e['Mã NV'], hoTen: e['Họ tên'], khoi: e['Khối'],
           luongCoBan: e.luongCoBan, phuCap: e.phuCap, luongCaDem: null, luongOt: null,
@@ -165,11 +165,12 @@ export default function Luong() {
   const money = (v) => (v === null || v === undefined ? '—' : formatCurrency(v))
 
   function handleExport() {
-    const headers = ['Mã NV', 'Họ tên', 'Khối', 'Lương CB', 'Phụ cấp', ...(showDetail ? DETAIL_COLUMNS.map(([, label]) => label) : []), 'Ca đêm', 'OT', 'Chuyến', 'Khấu trừ', 'Thực lãnh']
+    const headers = ['Mã NV', 'Họ tên', 'Khối', 'Lương CB', 'Phụ cấp', ...(showDetail ? DETAIL_COLUMNS.map(([, label]) => label) : []), 'Ca đêm', 'OT', 'Chuyến', 'Khấu trừ', 'BHXH (8%)', 'BHYT (1.5%)', 'BHTN (1%)', 'Thuế TNCN', 'Thực lãnh']
     const dataRows = rows.map((r) => [
       r.maNv, r.hoTen, KHOI_LABELS[r.khoi] || r.khoi, r.luongCoBan || 0, r.phuCap || 0,
       ...(showDetail ? DETAIL_COLUMNS.map(([key]) => r[key] || 0) : []),
-      r.luongCaDem || 0, r.luongOt || 0, r.luongChuyen || 0, r.khauTru || 0, r.thucLanh || 0,
+      r.luongCaDem || 0, r.luongOt || 0, r.luongChuyen || 0, r.khauTru || 0,
+      r.bhxhNld || 0, r.bhytNld || 0, r.bhtnNld || 0, r.thueTncn || 0, r.thucLanh || 0,
     ])
     exportToExcel(headers, dataRows, `BangLuong_${month}_${year}.xlsx`, `BangLuong_${month}_${year}`)
   }
@@ -239,6 +240,10 @@ export default function Luong() {
                 <th className="px-4 py-3 font-medium text-right">OT</th>
                 <th className="px-4 py-3 font-medium text-right">Chuyến</th>
                 <th className="px-4 py-3 font-medium text-right">Khấu trừ</th>
+                <th className="px-4 py-3 font-medium text-right">BHXH (8%)</th>
+                <th className="px-4 py-3 font-medium text-right">BHYT (1.5%)</th>
+                <th className="px-4 py-3 font-medium text-right">BHTN (1%)</th>
+                <th className="px-4 py-3 font-medium text-right">Thuế TNCN</th>
                 <th className="px-4 py-3 font-medium text-right">Thực lãnh</th>
               </tr>
             </thead>
@@ -261,6 +266,10 @@ export default function Luong() {
                   <td className="px-4 py-2.5 text-right">{money(r.luongOt)}</td>
                   <td className="px-4 py-2.5 text-right">{money(r.luongChuyen)}</td>
                   <td className="px-4 py-2.5 text-right text-[var(--color-danger)]">{r.khauTru ? '-' + money(r.khauTru) : '—'}</td>
+                  <td className="px-4 py-2.5 text-right text-[var(--color-danger)]">{r.bhxhNld ? '-' + money(r.bhxhNld) : '—'}</td>
+                  <td className="px-4 py-2.5 text-right text-[var(--color-danger)]">{r.bhytNld ? '-' + money(r.bhytNld) : '—'}</td>
+                  <td className="px-4 py-2.5 text-right text-[var(--color-danger)]">{r.bhtnNld ? '-' + money(r.bhtnNld) : '—'}</td>
+                  <td className="px-4 py-2.5 text-right text-[var(--color-danger)]">{r.thueTncn ? '-' + money(r.thueTncn) : '—'}</td>
                   <td className="px-4 py-2.5 text-right font-semibold text-[var(--color-ink)]">{money(r.thucLanh)}</td>
                 </tr>
               ))}

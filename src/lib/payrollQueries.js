@@ -1,5 +1,6 @@
 import { supabase } from './supabase'
 import { encryptValue, decryptValue } from './fernetCrypto'
+import { getPayrollConfig, tinhBaoHiemNguoiLaoDong, tinhThueTNCN } from './taxCalc'
 
 const NIGHT_SHIFT_CA_ID_FALLBACK = 3
 // Các khoản lương/phụ cấp chi tiết theo đúng cột trong file Excel công ty (ho_so_luong).
@@ -35,12 +36,29 @@ export async function getActiveEmployeesBasic() {
   return res.data
 }
 
+// Có thật sự đang làm việc TRONG kỳ lương (tháng/năm) đó không — tránh trường hợp chọn 1
+// tháng trong quá khứ, TRƯỚC cả ngày người đó vào công ty, mà vẫn bị tính vào vì chỉ xét
+// Trạng thái hiện tại chứ không xét ngày vào làm/ngày nghỉ việc so với kỳ đang chọn.
+function dangLamViecTrongKy(ngayVaoCty, ngayNghiViec, month, year) {
+  if (!ngayVaoCty) return false
+  const dauKy = new Date(year, month - 1, 1)
+  const cuoiKy = new Date(year, month, 0) // ngày cuối tháng
+  const vao = new Date(ngayVaoCty)
+  if (vao > cuoiKy) return false // chưa vào làm trong kỳ này
+  if (ngayNghiViec) {
+    const nghi = new Date(ngayNghiViec)
+    if (nghi < dauKy) return false // đã nghỉ trước khi kỳ này bắt đầu
+  }
+  return true
+}
+
 // Giống getActiveEmployeesBasic nhưng kèm luôn Lương cơ bản/Tổng phụ cấp đã khai báo sẵn ở
 // "Đơn giá lương" (ho_so_luong) — dùng cho bảng "xem trước" khi CHƯA bấm Tính lương, để không
-// hiện trống trơn dù đơn giá đã có sẵn từ trước.
-export async function getActiveEmployeesWithRate() {
+// hiện trống trơn dù đơn giá đã có sẵn từ trước. Lọc thêm theo đúng tháng/năm đang xem — không
+// hiện người chưa vào làm hoặc đã nghỉ trước kỳ đó.
+export async function getActiveEmployeesWithRate(month, year) {
   const [empRes, hsRes] = await Promise.all([
-    supabase.from('nhan_vien').select('"Mã NV", "Họ tên", "Khối"').not('Trạng thái', 'in', '(TamNghi,NghiThaiSan,DaNghiViec)').order('Mã NV'),
+    supabase.from('nhan_vien').select('"Mã NV", "Họ tên", "Khối", "Ngày vào Cty", "Ngày nghỉ việc"').not('Trạng thái', 'in', '(TamNghi,NghiThaiSan,DaNghiViec)').order('Mã NV'),
     supabase.from('ho_so_luong').select('*'),
   ])
   if (empRes.error) throw empRes.error
@@ -53,14 +71,16 @@ export async function getActiveEmployeesWithRate() {
     hoSoMap[h.ma_nv] = row
   }
 
-  return empRes.data.map((e) => {
-    const hs = hoSoMap[e['Mã NV']]
-    return {
-      ...e,
-      luongCoBan: hs ? hs.luong_co_ban : null,
-      phuCap: hs ? tinhTongPhuCap(hs) : null,
-    }
-  })
+  return empRes.data
+    .filter((e) => dangLamViecTrongKy(e['Ngày vào Cty'], e['Ngày nghỉ việc'], month, year))
+    .map((e) => {
+      const hs = hoSoMap[e['Mã NV']]
+      return {
+        ...e,
+        luongCoBan: hs ? hs.luong_co_ban : null,
+        phuCap: hs ? tinhTongPhuCap(hs) : null,
+      }
+    })
 }
 
 export async function getOrCreatePeriod(month, year) {
@@ -104,9 +124,11 @@ export async function generatePayroll(month, year) {
   const dayStart = `${year}-${String(month).padStart(2, '0')}-01`
   const dayEnd = `${year}-${String(month).padStart(2, '0')}-${String(lastDayOfMonth(year, month)).padStart(2, '0')}`
 
-  const empRes = await supabase.from('nhan_vien').select('"Mã NV"').not('Trạng thái', 'in', '(TamNghi,NghiThaiSan,DaNghiViec)')
+  const empRes = await supabase.from('nhan_vien').select('"Mã NV", "Ngày vào Cty", "Ngày nghỉ việc"').not('Trạng thái', 'in', '(TamNghi,NghiThaiSan,DaNghiViec)')
   if (empRes.error) throw empRes.error
-  const maNvList = empRes.data.map((e) => e['Mã NV'])
+  const maNvList = empRes.data
+    .filter((e) => dangLamViecTrongKy(e['Ngày vào Cty'], e['Ngày nghỉ việc'], month, year))
+    .map((e) => e['Mã NV'])
   if (!maNvList.length) return { count: 0, periodId }
 
   const hsRes = await supabase.from('ho_so_luong').select('*').in('ma_nv', maNvList)
@@ -116,6 +138,12 @@ export async function generatePayroll(month, year) {
     hoSoMap[h.ma_nv] = {}
     for (const f of MONEY_FIELDS) hoSoMap[h.ma_nv][f] = Number(await decryptValue(h[f])) || 0
   }
+
+  // Số người phụ thuộc — dùng tính giảm trừ gia cảnh khi tính thuế TNCN.
+  const ntRes = await supabase.from('nhan_vien').select('"Mã NV", "Số người phụ thuộc"').in('Mã NV', maNvList)
+  if (ntRes.error) throw ntRes.error
+  const soNguoiPhuThuocMap = Object.fromEntries(ntRes.data.map((e) => [e['Mã NV'], e['Số người phụ thuộc'] || 0]))
+  const payrollConfig = await getPayrollConfig()
 
   const caRes = await supabase.from('loai_ca').select('id, is_night')
   const nightCaIds = caRes.data?.filter((c) => c.is_night).map((c) => c.id) || [NIGHT_SHIFT_CA_ID_FALLBACK]
@@ -156,7 +184,13 @@ export async function generatePayroll(month, year) {
     const luongOt = (otHoursByNv[maNv] || 0) * donGiaOt
     const luongChuyen = (shipmentCount[maNv] || 0) * donGiaChuyen
     const khauTru = (absentCount[maNv] || 0) * mucPhat
-    const thucLanh = luongCoBan + phuCap + luongCaDem + luongOt + luongChuyen - khauTru
+
+    // Khấu trừ bắt buộc theo luật — trước đây CHƯA có, "Thực lãnh" tính thiếu.
+    const baoHiem = tinhBaoHiemNguoiLaoDong(luongCoBan, payrollConfig)
+    const tongThuNhapChiuThue = luongCoBan + phuCap + luongCaDem + luongOt + luongChuyen
+    const { thue: thueTncn, thuNhapTinhThue } = tinhThueTNCN(tongThuNhapChiuThue, baoHiem.tong, soNguoiPhuThuocMap[maNv], payrollConfig)
+
+    const thucLanh = tongThuNhapChiuThue - baoHiem.tong - thueTncn - khauTru
 
     const row = {
       id_ky_luong: periodId, ma_nv: maNv,
@@ -166,6 +200,11 @@ export async function generatePayroll(month, year) {
       luong_ot: await encryptValue(luongOt),
       luong_chuyen: await encryptValue(luongChuyen),
       khau_tru: await encryptValue(khauTru),
+      bhxh_nld: await encryptValue(baoHiem.bhxh),
+      bhyt_nld: await encryptValue(baoHiem.bhyt),
+      bhtn_nld: await encryptValue(baoHiem.bhtn),
+      thu_nhap_tinh_thue: await encryptValue(thuNhapTinhThue),
+      thue_tncn: await encryptValue(thueTncn),
       thuc_lanh: await encryptValue(thucLanh),
     }
     // Chụp lại từng khoản phụ cấp chi tiết tại thời điểm tính lương này (không đổi theo
@@ -199,6 +238,10 @@ export async function getPayrollTable(periodId) {
       luongOt: Number(await decryptValue(r.luong_ot)) || 0,
       luongChuyen: Number(await decryptValue(r.luong_chuyen)) || 0,
       khauTru: Number(await decryptValue(r.khau_tru)) || 0,
+      bhxhNld: Number(await decryptValue(r.bhxh_nld)) || 0,
+      bhytNld: Number(await decryptValue(r.bhyt_nld)) || 0,
+      bhtnNld: Number(await decryptValue(r.bhtn_nld)) || 0,
+      thueTncn: Number(await decryptValue(r.thue_tncn)) || 0,
       thucLanh: Number(await decryptValue(r.thuc_lanh)) || 0,
     }
     for (const f of ALLOWANCE_FIELDS) row[f] = Number(await decryptValue(r[f])) || 0
