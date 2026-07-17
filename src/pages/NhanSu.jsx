@@ -15,7 +15,16 @@ import NhanVienDetailModal from '../components/NhanVienDetailModal'
 import { Card, Button, Badge, LoadingState, ErrorState, EmptyState } from '../components/ui'
 
 const KHOI_LABEL_TO_CODE = Object.fromEntries(Object.entries(KHOI_LABELS).map(([k, v]) => [v, k]))
-const TRANG_THAI_LABEL_TO_CODE = Object.fromEntries(Object.entries(TRANG_THAI_NV_LABELS).map(([k, v]) => [v, k]))
+const TRANG_THAI_LABEL_TO_CODE = {
+  ...Object.fromEntries(Object.entries(TRANG_THAI_NV_LABELS).map(([k, v]) => [v, k])),
+  // Biến thể chữ hay gặp trong file Excel thật của công ty (khác chút so với nhãn chuẩn) —
+  // không khớp thì bị lưu nguyên văn, không map ra đúng mã, làm lọc theo trạng thái ra rỗng.
+  'Đang thử việc': 'ThuViec',
+  'Đang tạm nghỉ': 'TamNghi',
+  'Đang nghỉ thai sản': 'NghiThaiSan',
+  'Đã nghỉ': 'DaNghiViec',
+  'Nghỉ việc': 'DaNghiViec',
+}
 
 // Các trường không phải chuỗi text đơn giản — xử lý riêng khi nhập Excel.
 const DATE_FIELDS = ['Ngày vào Cty', 'Ngày nghỉ việc']
