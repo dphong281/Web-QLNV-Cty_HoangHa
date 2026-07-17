@@ -27,9 +27,10 @@ export function tinhTongThuNhap(hs) {
 function lastDayOfMonth(year, month) { return new Date(year, month, 0).getDate() }
 
 export async function getActiveEmployeesBasic() {
-  // Tính lương chung cho cả "Đang làm việc" và "Thử việc" (thử việc vẫn được trả lương,
-  // thường theo % lương chính thức — số cụ thể lấy đúng từ Đơn giá lương đã khai báo cho người đó).
-  const res = await supabase.from('nhan_vien').select('"Mã NV", "Họ tên", "Khối"').in('Trạng thái', ['DangLamViec', 'ThuViec']).order('Mã NV')
+  // Tính lương cho tất cả nhân viên TRỪ Tạm nghỉ/Nghỉ thai sản/Đã nghỉ việc — dùng cách loại
+  // trừ thay vì chỉ liệt kê "DangLamViec"/"ThuViec" để không bị sót người có Trạng thái ghi
+  // lệch chữ khi nhập Excel (VD "Đang thử việc" thay vì "Thử việc") không khớp đúng 2 mã đó.
+  const res = await supabase.from('nhan_vien').select('"Mã NV", "Họ tên", "Khối"').not('Trạng thái', 'in', '(TamNghi,NghiThaiSan,DaNghiViec)').order('Mã NV')
   if (res.error) throw res.error
   return res.data
 }
@@ -39,7 +40,7 @@ export async function getActiveEmployeesBasic() {
 // hiện trống trơn dù đơn giá đã có sẵn từ trước.
 export async function getActiveEmployeesWithRate() {
   const [empRes, hsRes] = await Promise.all([
-    supabase.from('nhan_vien').select('"Mã NV", "Họ tên", "Khối"').in('Trạng thái', ['DangLamViec', 'ThuViec']).order('Mã NV'),
+    supabase.from('nhan_vien').select('"Mã NV", "Họ tên", "Khối"').not('Trạng thái', 'in', '(TamNghi,NghiThaiSan,DaNghiViec)').order('Mã NV'),
     supabase.from('ho_so_luong').select('*'),
   ])
   if (empRes.error) throw empRes.error
@@ -103,7 +104,7 @@ export async function generatePayroll(month, year) {
   const dayStart = `${year}-${String(month).padStart(2, '0')}-01`
   const dayEnd = `${year}-${String(month).padStart(2, '0')}-${String(lastDayOfMonth(year, month)).padStart(2, '0')}`
 
-  const empRes = await supabase.from('nhan_vien').select('"Mã NV"').in('Trạng thái', ['DangLamViec', 'ThuViec'])
+  const empRes = await supabase.from('nhan_vien').select('"Mã NV"').not('Trạng thái', 'in', '(TamNghi,NghiThaiSan,DaNghiViec)')
   if (empRes.error) throw empRes.error
   const maNvList = empRes.data.map((e) => e['Mã NV'])
   if (!maNvList.length) return { count: 0, periodId }
