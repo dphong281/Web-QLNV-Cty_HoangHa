@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { formatDate } from '../lib/format'
 import { Badge, EmptyState } from './ui'
 
@@ -56,8 +57,12 @@ export default function ContractHistoryTable({ rows }) {
         <tbody>
           {rows.map((r) => (
             <tr key={r.maNv} className="border-b border-[var(--color-line)] last:border-0 hover:bg-black/[0.015]">
-              <td className="px-3 py-2.5 font-medium text-[var(--color-ink)] sticky left-0 bg-[var(--color-surface)] whitespace-nowrap">{r.maNv}</td>
-              <td className="px-3 py-2.5 whitespace-nowrap">{r.hoTen}</td>
+              <td className="px-3 py-2.5 font-medium text-[var(--color-ink)] sticky left-0 bg-[var(--color-surface)] whitespace-nowrap">
+                <Link to={`/nhan-su?detail=${r.maNv}`} className="hover:underline">{r.maNv}</Link>
+              </td>
+              <td className="px-3 py-2.5 whitespace-nowrap">
+                <Link to={`/nhan-su?detail=${r.maNv}`} className="hover:underline">{r.hoTen}</Link>
+              </td>
               <td className="px-3 py-2.5 text-[var(--color-text-muted)] whitespace-nowrap">{r.boPhan}</td>
               {STAGE_GROUPS.map((g) => g.cols.map((c, i) => (
                 <td key={`${g.key}-${c}`} className={`px-3 py-2.5 whitespace-nowrap ${i === 0 ? 'border-l border-[var(--color-line)]' : ''}`}>{renderCell(r[g.key], c)}</td>

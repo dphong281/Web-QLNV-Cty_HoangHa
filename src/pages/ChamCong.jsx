@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { reconcileDay, reconcileRange, importRawLogs, getTimekeepingSummary, deleteTimekeepingRecord } from '../lib/timekeepingQueries'
 import { formatDate } from '../lib/format'
 import { CHAM_CONG_RAW_SYNONYMS, CHAM_CONG_RAW_REQUIRED } from '../lib/importSynonyms'
@@ -151,7 +152,10 @@ export default function ChamCong() {
               {list.map((r) => (
                 <tr key={r.id} className="border-b border-[var(--color-line)] last:border-0 hover:bg-black/[0.015]">
                   <td className="px-5 py-3">{formatDate(r.ngay)}</td>
-                  <td className="px-5 py-3 font-medium text-[var(--color-ink)]">{r.hoTen} <span className="text-xs text-[var(--color-text-muted)]">({r.maNv})</span></td>
+                  <td className="px-5 py-3 font-medium text-[var(--color-ink)]">
+                    <Link to={`/nhan-su?detail=${r.maNv}`} className="hover:underline">{r.hoTen}</Link>{' '}
+                    <span className="text-xs text-[var(--color-text-muted)]">({r.maNv})</span>
+                  </td>
                   <td className="px-5 py-3 text-[var(--color-text-muted)]">{r.noiLamViec}</td>
                   <td className="px-5 py-3">{r.gioVao || '—'}</td>
                   <td className="px-5 py-3">{r.gioRa || '—'}</td>

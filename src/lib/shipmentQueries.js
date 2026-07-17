@@ -65,7 +65,7 @@ export async function getShipmentsDisplay({ status, dateFrom, dateTo } = {}) {
   const dvMap = Object.fromEntries((dvRes.data || []).map((d) => [d.id, d.ten_don_vi]))
 
   return shipments.map((s) => ({
-    id: s.id, maChuyen: s.ma_chuyen, driverName: empMap[s.ma_nv] || s.ma_nv || '',
+    id: s.id, maChuyen: s.ma_chuyen, driverMaNv: s.ma_nv, driverName: empMap[s.ma_nv] || s.ma_nv || '',
     plateNumber: xeMap[s.id_xe] || '', diemDi: dvMap[s.id_don_vi_di] || '', diemDen: dvMap[s.id_don_vi_den] || '',
     loaiNhienLieu: s.loai_nhien_lieu || '', soLuongLit: s.so_luong_lit || 0,
     ngayDi: s.ngay_di, status: s.trang_thai, lyDoHuy: s.ly_do_huy,

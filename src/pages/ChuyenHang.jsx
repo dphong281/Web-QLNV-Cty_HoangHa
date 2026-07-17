@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import {
   getAvailableDrivers, getAllXeBon, createShipment, updateShipmentStatus, getShipmentsDisplay,
 } from '../lib/shipmentQueries'
@@ -131,7 +132,7 @@ export default function ChuyenHang() {
               {list.map((s) => (
                 <tr key={s.id} className="border-b border-[var(--color-line)] last:border-0 hover:bg-black/[0.015]">
                   <td className="px-4 py-2.5 font-medium text-[var(--color-ink)]">{s.maChuyen}</td>
-                  <td className="px-4 py-2.5">{s.driverName}</td>
+                  <td className="px-4 py-2.5"><Link to={`/nhan-su?detail=${s.driverMaNv}`} className="hover:underline">{s.driverName}</Link></td>
                   <td className="px-4 py-2.5 text-[var(--color-text-muted)]">{s.plateNumber}</td>
                   <td className="px-4 py-2.5 text-[var(--color-text-muted)]">{s.diemDi} → {s.diemDen}</td>
                   <td className="px-4 py-2.5 text-right">{s.soLuongLit?.toLocaleString('vi-VN')}</td>

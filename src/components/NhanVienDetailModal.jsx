@@ -128,7 +128,7 @@ export default function NhanVienDetailModal({ detail, onClose, onEdit }) {
             <div className="text-[var(--color-text-muted)]">Đang tải...</div>
           ) : salary ? (
             <div className="grid grid-cols-2 gap-x-6 gap-y-2">
-              <Field label="Lương chức danh (đóng BHXH)">{formatCurrency(salary.luong_co_ban)}</Field>
+              <Field label="Lương chức danh (Lương CB, đóng BHXH)">{formatCurrency(salary.luong_co_ban)}</Field>
               <Field label="Tổng phụ cấp">{formatCurrency(tinhTongPhuCap(salary))}</Field>
               <Field label="Tổng thu nhập">{formatCurrency(tinhTongThuNhap(salary))}</Field>
             </div>

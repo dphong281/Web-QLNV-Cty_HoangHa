@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import {
   getAllDonVi, getAllLoaiCa, getWeekSchedule, upsertShift, autoAssignShifts, copyPreviousWeek,
 } from '../lib/shiftQueries'
@@ -147,7 +148,9 @@ export default function CaKip() {
               <tbody>
                 {employees.map(([maNv, info]) => (
                   <tr key={maNv} className="border-b border-[var(--color-line)] last:border-0">
-                    <td className="px-4 py-2.5 font-medium text-[var(--color-ink)] sticky left-0 bg-white whitespace-nowrap">{info.hoTen}</td>
+                    <td className="px-4 py-2.5 font-medium text-[var(--color-ink)] sticky left-0 bg-white whitespace-nowrap">
+                      <Link to={`/nhan-su?detail=${maNv}`} className="hover:underline">{info.hoTen}</Link>
+                    </td>
                     {days.map((d) => {
                       const dateStr = toDateStr(d)
                       const caId = info.shifts[dateStr]

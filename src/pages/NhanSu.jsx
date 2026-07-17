@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import {
   getAllEmployees, createEmployee, updateEmployee, deactivateEmployee, importEmployeesFromExcel, ConflictError,
 } from '../lib/employeeQueries'
@@ -47,7 +48,19 @@ export default function NhanSu() {
   const [detail, setDetail] = useState(null)
   const [importOpen, setImportOpen] = useState(false)
 
+  const [searchParams, setSearchParams] = useSearchParams()
+
   useEffect(() => { load() }, [])
+
+  // Cho phép các trang khác điều hướng tới đây kèm ?detail=MaNV để tự mở popup chi tiết
+  // (VD bấm vào tên nhân viên ở bảng Hợp đồng/Lương/Chấm công...).
+  useEffect(() => {
+    const maNv = searchParams.get('detail')
+    if (!maNv || list.length === 0) return
+    const emp = list.find((e) => e['Mã NV'] === maNv)
+    if (emp) setDetail(emp)
+    setSearchParams((p) => { p.delete('detail'); return p }, { replace: true })
+  }, [list, searchParams])
 
   async function load() {
     setLoading(true)
@@ -265,7 +278,7 @@ export default function NhanSu() {
                       <button onClick={() => setDetail(emp)} className="hover:underline">{emp['Mã NV']}</button>
                     </td>
                     <td className="px-5 py-3">
-                      {emp['Họ tên']}
+                      <button onClick={() => setDetail(emp)} className="hover:underline text-left">{emp['Họ tên']}</button>
                       {warning && <span title={warning.text} className="ml-1.5 text-xs">⚠</span>}
                     </td>
                     <td className="px-5 py-3 text-[var(--color-text-muted)]">{KHOI_LABELS[emp['Khối']] || emp['Khối']}</td>

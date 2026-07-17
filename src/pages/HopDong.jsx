@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import {
   getContractsTable, createContractLogic, updateContractLogic, liquidateContract, ConflictError, getContractHistoryTable,
 } from '../lib/contractQueries'
@@ -205,7 +206,10 @@ export default function HopDong() {
                   <td className="px-5 py-3 font-medium text-[var(--color-ink)]">
                     {c.so_hd_goc || <span className="text-[var(--color-text-muted)] font-normal">—</span>}
                   </td>
-                  <td className="px-5 py-3">{c.hoTen} <span className="text-xs text-[var(--color-text-muted)]">({c.ma_nv})</span></td>
+                  <td className="px-5 py-3">
+                    <Link to={`/nhan-su?detail=${c.ma_nv}`} className="hover:underline">{c.hoTen}</Link>{' '}
+                    <span className="text-xs text-[var(--color-text-muted)]">({c.ma_nv})</span>
+                  </td>
                   <td className="px-5 py-3 text-[var(--color-text-muted)]">
                     {c.loaiHdHienThi}
                     {c.loai_hd === 'ThuViec' && c.ket_qua_danh_gia && c.ket_qua_danh_gia !== 'Chưa đánh giá' && (

@@ -32,6 +32,34 @@ export async function getActiveEmployeesBasic() {
   return res.data
 }
 
+// Giống getActiveEmployeesBasic nhưng kèm luôn Lương cơ bản/Tổng phụ cấp đã khai báo sẵn ở
+// "Đơn giá lương" (ho_so_luong) — dùng cho bảng "xem trước" khi CHƯA bấm Tính lương, để không
+// hiện trống trơn dù đơn giá đã có sẵn từ trước.
+export async function getActiveEmployeesWithRate() {
+  const [empRes, hsRes] = await Promise.all([
+    supabase.from('nhan_vien').select('"Mã NV", "Họ tên", "Khối"').eq('Trạng thái', 'DangLamViec').order('Mã NV'),
+    supabase.from('ho_so_luong').select('*'),
+  ])
+  if (empRes.error) throw empRes.error
+  if (hsRes.error) throw hsRes.error
+
+  const hoSoMap = {}
+  for (const h of hsRes.data) {
+    const row = {}
+    for (const f of MONEY_FIELDS) row[f] = Number(await decryptValue(h[f])) || 0
+    hoSoMap[h.ma_nv] = row
+  }
+
+  return empRes.data.map((e) => {
+    const hs = hoSoMap[e['Mã NV']]
+    return {
+      ...e,
+      luongCoBan: hs ? hs.luong_co_ban : null,
+      phuCap: hs ? tinhTongPhuCap(hs) : null,
+    }
+  })
+}
+
 export async function getOrCreatePeriod(month, year) {
   const res = await supabase.from('ky_luong').select('*').eq('thang', month).eq('nam', year).limit(1)
   if (res.error) throw res.error
