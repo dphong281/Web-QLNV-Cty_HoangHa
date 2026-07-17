@@ -90,7 +90,7 @@ export default function PrintContractModal({ open, onClose, initialMaNv, initial
   return (
     <Modal open={open} onClose={onClose} title="In hợp đồng / quyết định" size="xl">
       <form onSubmit={handleGenerate} className="space-y-4">
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Input label="Mã nhân viên" value={maNv} onChange={(e) => setMaNv(e.target.value)} onBlur={handleMaNvBlur} placeholder="VD: HH011" />
           <Select label="Loại văn bản" value={loaiVanBan} onChange={(e) => setLoaiVanBan(e.target.value)}>
             {LOAI_VAN_BAN_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -106,7 +106,7 @@ export default function PrintContractModal({ open, onClose, initialMaNv, initial
           Mẫu đang dùng: <b>{config.label}</b>. Các trường bên dưới điền sẵn từ hồ sơ nhân viên (nếu có) — anh có thể sửa trước khi tải file.
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {config.fields.map((f) => (
             <Input
               key={f.key}

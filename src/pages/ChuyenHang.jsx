@@ -112,18 +112,18 @@ export default function ChuyenHang() {
         </select>
       </div>
 
-      <Card>
+      <Card className="overflow-x-auto">
         {loading ? <LoadingState /> : error ? <div className="p-4"><ErrorState message={error} /></div> : list.length === 0 ? (
           <EmptyState title="Chưa có chuyến hàng nào" action={<Button variant="accent" onClick={openAdd}>+ Tạo chuyến mới</Button>} />
         ) : (
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-xs text-[var(--color-text-muted)] uppercase tracking-wide border-b border-[var(--color-line)]">
-                <th className="px-4 py-3 font-medium">Mã chuyến</th>
-                <th className="px-4 py-3 font-medium">Tài xế</th>
-                <th className="px-4 py-3 font-medium">Xe</th>
-                <th className="px-4 py-3 font-medium">Tuyến</th>
-                <th className="px-4 py-3 font-medium text-right">Số lít</th>
+                <th className="px-4 py-3 font-medium hidden sm:table-cell">Mã chuyến</th>
+                <th className="px-4 py-3 font-medium sticky left-0 bg-[var(--color-surface)]">Tài xế</th>
+                <th className="px-4 py-3 font-medium hidden md:table-cell">Xe</th>
+                <th className="px-4 py-3 font-medium hidden md:table-cell">Tuyến</th>
+                <th className="px-4 py-3 font-medium text-right hidden sm:table-cell">Số lít</th>
                 <th className="px-4 py-3 font-medium">Trạng thái</th>
                 <th className="px-4 py-3 font-medium text-right">Thao tác</th>
               </tr>
@@ -131,11 +131,14 @@ export default function ChuyenHang() {
             <tbody>
               {list.map((s) => (
                 <tr key={s.id} className="border-b border-[var(--color-line)] last:border-0 hover:bg-black/[0.015]">
-                  <td className="px-4 py-2.5 font-medium text-[var(--color-ink)]">{s.maChuyen}</td>
-                  <td className="px-4 py-2.5"><Link to={`/nhan-su?detail=${s.driverMaNv}`} className="hover:underline">{s.driverName}</Link></td>
-                  <td className="px-4 py-2.5 text-[var(--color-text-muted)]">{s.plateNumber}</td>
-                  <td className="px-4 py-2.5 text-[var(--color-text-muted)]">{s.diemDi} → {s.diemDen}</td>
-                  <td className="px-4 py-2.5 text-right">{s.soLuongLit?.toLocaleString('vi-VN')}</td>
+                  <td className="px-4 py-2.5 font-medium text-[var(--color-ink)] hidden sm:table-cell">{s.maChuyen}</td>
+                  <td className="px-4 py-2.5 sticky left-0 bg-[var(--color-surface)]">
+                    <Link to={`/nhan-su?detail=${s.driverMaNv}`} className="hover:underline">{s.driverName}</Link>
+                    <div className="text-xs text-[var(--color-text-muted)] md:hidden">{s.diemDi} → {s.diemDen}</div>
+                  </td>
+                  <td className="px-4 py-2.5 text-[var(--color-text-muted)] hidden md:table-cell">{s.plateNumber}</td>
+                  <td className="px-4 py-2.5 text-[var(--color-text-muted)] hidden md:table-cell">{s.diemDi} → {s.diemDen}</td>
+                  <td className="px-4 py-2.5 text-right hidden sm:table-cell">{s.soLuongLit?.toLocaleString('vi-VN')}</td>
                   <td className="px-4 py-2.5"><Badge className={TRANG_THAI_COLORS[s.status]}>{TRANG_THAI_LABELS[s.status]}</Badge></td>
                   <td className="px-4 py-2.5 text-right space-x-2">
                     {s.status === 'DangDi' && (
@@ -154,7 +157,7 @@ export default function ChuyenHang() {
 
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="Tạo chuyến hàng mới" wide>
         <form onSubmit={handleSave} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Select label="Tài xế *" value={form.ma_nv} onChange={(e) => setForm({ ...form, ma_nv: e.target.value })}>
               <option value="">— Chọn tài xế (đang rảnh) —</option>
               {drivers.map((d) => <option key={d.maNv} value={d.maNv}>{d.hoTen} ({d.maNv})</option>)}
@@ -164,7 +167,7 @@ export default function ChuyenHang() {
               {xeList.map((x) => <option key={x.id} value={x.id}>{x.bien_so}</option>)}
             </Select>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Select label="Điểm đi *" value={form.id_don_vi_di} onChange={(e) => setForm({ ...form, id_don_vi_di: e.target.value })}>
               <option value="">— Chọn —</option>
               {donViList.map((d) => <option key={d.id} value={d.id}>{d.ten_don_vi}</option>)}
@@ -174,7 +177,7 @@ export default function ChuyenHang() {
               {donViList.map((d) => <option key={d.id} value={d.id}>{d.ten_don_vi}</option>)}
             </Select>
           </div>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Input label="Loại nhiên liệu" value={form.loai_nhien_lieu} onChange={(e) => setForm({ ...form, loai_nhien_lieu: e.target.value })} placeholder="VD: Xăng A95" />
             <Input label="Số lít" type="number" value={form.so_luong_lit} onChange={(e) => setForm({ ...form, so_luong_lit: e.target.value })} />
             <Input label="Ngày đi *" type="datetime-local" value={form.ngay_di} onChange={(e) => setForm({ ...form, ngay_di: e.target.value })} />

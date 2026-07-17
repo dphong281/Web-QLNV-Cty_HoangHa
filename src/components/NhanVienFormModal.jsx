@@ -27,11 +27,11 @@ export default function NhanVienFormModal({ open, onClose, editing, form, setFor
 
         {tab === 'co_ban' && (
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Input label="Mã NV *" required disabled={!!editing} value={form['Mã NV']} onChange={set('Mã NV')} placeholder="VD: HH011" />
               <Input label="Họ tên *" required value={form['Họ tên']} onChange={set('Họ tên')} />
             </div>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <Input label="Ngày sinh" placeholder="dd/mm/yyyy" value={form['Ngày sinh'] || ''} onChange={set('Ngày sinh')} />
               <Select label="Giới tính" value={form['Giới tính']} onChange={set('Giới tính')}>
                 <option>Nam</option><option>Nữ</option>
@@ -41,12 +41,12 @@ export default function NhanVienFormModal({ open, onClose, editing, form, setFor
                 {TINH_TRANG_HON_NHAN_OPTIONS.map((o) => <option key={o}>{o}</option>)}
               </Select>
             </div>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <Input label="Số CCCD" value={form['Số CCCD'] || ''} onChange={set('Số CCCD')} />
               <Input label="Ngày cấp CCCD" placeholder="dd/mm/yyyy" value={form['Ngày cấp CCCD'] || ''} onChange={set('Ngày cấp CCCD')} />
               <Input label="Nơi cấp" value={form['Nơi cấp'] || ''} onChange={set('Nơi cấp')} />
             </div>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <Input label="Mã số thuế" value={form['Mã số thuế'] || ''} onChange={set('Mã số thuế')} />
               <Input label="Số BHXH" value={form['Số BHXH'] || ''} onChange={set('Số BHXH')} />
               <Input label="Quốc tịch" value={form['Quốc tịch'] || ''} onChange={set('Quốc tịch')} placeholder="Việt Nam" />
@@ -58,12 +58,12 @@ export default function NhanVienFormModal({ open, onClose, editing, form, setFor
 
         {tab === 'lien_he' && (
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Input label="Số điện thoại *" required value={form['Số ĐT']} onChange={set('Số ĐT')} placeholder="10 số, bắt đầu 0" />
               <Input label="Email cá nhân" type="email" value={form['Email'] || ''} onChange={set('Email')} />
             </div>
             <Input label="Email công ty" type="email" value={form['Email công ty'] || ''} onChange={set('Email công ty')} />
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Input label="Người liên hệ khẩn cấp" value={form['Người liên hệ khẩn cấp'] || ''} onChange={set('Người liên hệ khẩn cấp')} placeholder="VD: Vợ — Nguyễn Thị B" />
               <Input label="SĐT khẩn cấp" value={form['SĐT khẩn cấp'] || ''} onChange={set('SĐT khẩn cấp')} />
             </div>
@@ -72,27 +72,27 @@ export default function NhanVienFormModal({ open, onClose, editing, form, setFor
 
         {tab === 'cong_viec' && (
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Select label="Khối làm việc" value={form['Khối']} onChange={set('Khối')}>
                 {Object.entries(KHOI_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
               </Select>
               <Input label="Chức vụ *" required value={form['Chức vụ']} onChange={set('Chức vụ')} />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Input label="Nơi làm việc / Bộ phận *" required list="bo-phan-list" value={form['Nơi làm việc']} onChange={set('Nơi làm việc')} placeholder="Chọn hoặc gõ tên bộ phận" />
               <Input label="Ngạch" value={form['Ngạch'] || ''} onChange={set('Ngạch')} />
             </div>
             <datalist id="bo-phan-list">
               {BO_PHAN_OPTIONS.map((o) => <option key={o} value={o} />)}
             </datalist>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Input label="Cấp bậc" list="cap-bac-list" value={form['Cấp bậc'] || ''} onChange={set('Cấp bậc')} placeholder="Chọn hoặc gõ cấp bậc" />
               <Input label="Quản lý trực tiếp" value={form['Quản lý trực tiếp'] || ''} onChange={set('Quản lý trực tiếp')} placeholder="Mã NV hoặc tên quản lý" />
             </div>
             <datalist id="cap-bac-list">
               {CAP_BAC_OPTIONS.map((o) => <option key={o} value={o} />)}
             </datalist>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <Input label="Ngày vào Cty" type="date" value={form['Ngày vào Cty'] || ''} onChange={set('Ngày vào Cty')} />
               <Input label="Ngày nghỉ việc" type="date" value={form['Ngày nghỉ việc'] || ''} onChange={set('Ngày nghỉ việc')} />
               <Select label="Trạng thái" value={form['Trạng thái']} onChange={set('Trạng thái')}>
@@ -108,14 +108,14 @@ export default function NhanVienFormModal({ open, onClose, editing, form, setFor
 
         {tab === 'hoc_van_ngan_hang' && (
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Input label="Trình độ" list="trinh-do-list" value={form['Trình độ'] || ''} onChange={set('Trình độ')} placeholder="Chọn hoặc gõ trình độ" />
               <Input label="Chuyên ngành" value={form['Chuyên ngành'] || ''} onChange={set('Chuyên ngành')} />
             </div>
             <datalist id="trinh-do-list">
               {TRINH_DO_OPTIONS.map((o) => <option key={o} value={o} />)}
             </datalist>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Input label="Số tài khoản" value={form['Số tài khoản'] || ''} onChange={set('Số tài khoản')} />
               <Input label="Ngân hàng" list="ngan-hang-list" value={form['Ngân hàng'] || ''} onChange={set('Ngân hàng')} placeholder="Chọn hoặc gõ ngân hàng" />
             </div>

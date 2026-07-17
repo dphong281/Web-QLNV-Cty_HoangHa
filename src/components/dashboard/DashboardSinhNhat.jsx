@@ -52,7 +52,7 @@ export default function DashboardSinhNhat() {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <StatCard label="Sinh nhật tháng này" value={data.thangNay.length} accent />
         <StatCard label="Sinh nhật quý này" value={data.quyNay.length} />
       </div>

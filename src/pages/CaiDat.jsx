@@ -132,7 +132,7 @@ function CauHinhLuongSection() {
         Các mức này do Nhà nước quy định và thay đổi theo thời gian — chỉnh lại đây khi có Nghị định/Luật mới,
         không cần sửa code. Mặc định đang để theo mức hiện hành.
       </p>
-      <form onSubmit={handleSave} className="grid grid-cols-2 gap-4 mb-3">
+      <form onSubmit={handleSave} className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-3">
         <Input label="Lương cơ sở (đồng/tháng)" type="number" value={form.luong_co_so} onChange={(e) => setForm({ ...form, luong_co_so: e.target.value })} />
         <Input label="Lương tối thiểu vùng (đồng/tháng)" type="number" value={form.luong_toi_thieu_vung} onChange={(e) => setForm({ ...form, luong_toi_thieu_vung: e.target.value })} />
         <Input label="Giảm trừ bản thân (đồng/tháng)" type="number" value={form.giam_tru_ban_than} onChange={(e) => setForm({ ...form, giam_tru_ban_than: e.target.value })} />
@@ -335,7 +335,7 @@ function LoaiCaSection({ readOnly }) {
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="Thêm loại ca">
         <form onSubmit={handleSave} className="space-y-4">
           <Input label="Tên ca *" required value={form.ten_ca} onChange={(e) => setForm({ ...form, ten_ca: e.target.value })} placeholder="VD: Ca 1" />
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input label="Giờ bắt đầu" type="time" value={form.gio_bat_dau} onChange={(e) => setForm({ ...form, gio_bat_dau: e.target.value })} />
             <Input label="Giờ kết thúc" type="time" value={form.gio_ket_thuc} onChange={(e) => setForm({ ...form, gio_ket_thuc: e.target.value })} />
           </div>

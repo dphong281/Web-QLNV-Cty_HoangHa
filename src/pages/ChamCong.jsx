@@ -122,7 +122,7 @@ export default function ChamCong() {
         </div>
       </Card>
 
-      <div className="flex gap-3 mb-4">
+      <div className="flex flex-wrap gap-3 mb-4">
         <Input label="Từ ngày" type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="max-w-[160px]" />
         <Input label="Đến ngày" type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="max-w-[160px]" />
         <Select label="Trạng thái" value={filterTrangThai} onChange={(e) => setFilterTrangThai(e.target.value)} className="max-w-[180px]">
@@ -131,36 +131,37 @@ export default function ChamCong() {
         </Select>
       </div>
 
-      <Card>
+      <Card className="overflow-x-auto">
         {loading ? <LoadingState /> : error ? <div className="p-4"><ErrorState message={error} /></div> : list.length === 0 ? (
           <EmptyState title="Không có bản ghi chấm công trong khoảng thời gian này" />
         ) : (
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-xs text-[var(--color-text-muted)] uppercase tracking-wide border-b border-[var(--color-line)]">
-                <th className="px-5 py-3 font-medium">Ngày</th>
-                <th className="px-5 py-3 font-medium">Nhân viên</th>
-                <th className="px-5 py-3 font-medium">Nơi làm việc</th>
-                <th className="px-5 py-3 font-medium">Giờ vào</th>
-                <th className="px-5 py-3 font-medium">Giờ ra</th>
+                <th className="px-5 py-3 font-medium hidden sm:table-cell">Ngày</th>
+                <th className="px-5 py-3 font-medium sticky left-0 bg-[var(--color-surface)]">Nhân viên</th>
+                <th className="px-5 py-3 font-medium hidden md:table-cell">Nơi làm việc</th>
+                <th className="px-5 py-3 font-medium hidden sm:table-cell">Giờ vào</th>
+                <th className="px-5 py-3 font-medium hidden sm:table-cell">Giờ ra</th>
                 <th className="px-5 py-3 font-medium">Trạng thái</th>
-                <th className="px-5 py-3 font-medium text-right">OT (giờ)</th>
+                <th className="px-5 py-3 font-medium text-right hidden md:table-cell">OT (giờ)</th>
                 <th className="px-5 py-3 font-medium text-right">Thao tác</th>
               </tr>
             </thead>
             <tbody>
               {list.map((r) => (
                 <tr key={r.id} className="border-b border-[var(--color-line)] last:border-0 hover:bg-black/[0.015]">
-                  <td className="px-5 py-3">{formatDate(r.ngay)}</td>
-                  <td className="px-5 py-3 font-medium text-[var(--color-ink)]">
+                  <td className="px-5 py-3 hidden sm:table-cell">{formatDate(r.ngay)}</td>
+                  <td className="px-5 py-3 font-medium text-[var(--color-ink)] sticky left-0 bg-[var(--color-surface)]">
                     <Link to={`/nhan-su?detail=${r.maNv}`} className="hover:underline">{r.hoTen}</Link>{' '}
                     <span className="text-xs text-[var(--color-text-muted)]">({r.maNv})</span>
+                    <div className="text-xs text-[var(--color-text-muted)] sm:hidden">{formatDate(r.ngay)}</div>
                   </td>
-                  <td className="px-5 py-3 text-[var(--color-text-muted)]">{r.noiLamViec}</td>
-                  <td className="px-5 py-3">{r.gioVao || '—'}</td>
-                  <td className="px-5 py-3">{r.gioRa || '—'}</td>
+                  <td className="px-5 py-3 text-[var(--color-text-muted)] hidden md:table-cell">{r.noiLamViec}</td>
+                  <td className="px-5 py-3 hidden sm:table-cell">{r.gioVao || '—'}</td>
+                  <td className="px-5 py-3 hidden sm:table-cell">{r.gioRa || '—'}</td>
                   <td className="px-5 py-3"><Badge className={TRANG_THAI_COLORS[r.trangThai]}>{TRANG_THAI_LABELS[r.trangThai] || r.trangThai}</Badge></td>
-                  <td className="px-5 py-3 text-right">{r.otGio || 0}</td>
+                  <td className="px-5 py-3 text-right hidden md:table-cell">{r.otGio || 0}</td>
                   <td className="px-5 py-3 text-right">
                     <button onClick={() => handleDelete(r.id)} className="text-[var(--color-danger)] hover:underline text-sm font-medium">Xoá</button>
                   </td>

@@ -21,7 +21,7 @@ export default function DashboardCoCau() {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <StatCard label="Bộ phận có nhân sự" value={data.tongBoPhanCoNhanSu} />
         <StatCard label="Tổng nhân sự có bộ phận" value={data.tongNhanSuCoBoPhan} accent />
         <StatCard label="Bộ phận trong danh mục" value={data.boPhanTrongDanhMuc} />

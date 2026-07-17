@@ -58,7 +58,7 @@ export default function NhatKy() {
         <p className="text-sm text-[var(--color-text-muted)] mt-1">Ai đã thêm/sửa/xoá gì, lúc nào — ghi tự động ở tầng database</p>
       </div>
 
-      <div className="flex gap-3 mb-4">
+      <div className="flex flex-wrap gap-3 mb-4">
         <Select value={filterBang} onChange={(e) => setFilterBang(e.target.value)} className="w-48">
           <option value="all">Tất cả module</option>
           {Object.entries(BANG_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}

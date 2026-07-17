@@ -37,7 +37,7 @@ export default function DashboardBienDong() {
 
       {loading ? <LoadingState /> : error ? <ErrorState message={error} /> : (
         <>
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <StatCard label="Tổng nhân sự hiện tại" value={data.tongHienTai} />
             <StatCard label={`Tuyển mới ${year}`} value={data.tuyenMoiNam} accent />
             <StatCard label={`Nghỉ việc ${year}`} value={data.nghiViecNam} />

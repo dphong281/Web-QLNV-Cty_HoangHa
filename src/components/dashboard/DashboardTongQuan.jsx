@@ -47,7 +47,7 @@ export default function DashboardTongQuan() {
 
   return (
     <div>
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <StatCard label="Tổng CBCNV" value={chiSoChung.tongCbcnv} />
         <StatCard label="Đang làm việc" value={chiSoChung.dangLamViec} />
         <StatCard label="Đang thử việc" value={chiSoChung.dangThuViec} accent />
@@ -64,7 +64,7 @@ export default function DashboardTongQuan() {
         {tongCanhBao === 0 ? (
           <EmptyState title="Không có hợp đồng nào cần chú ý" />
         ) : (
-          <div className="grid grid-cols-3 gap-4 text-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
             <div>
               <div className="text-xs text-[var(--color-text-muted)] uppercase mb-2">Sắp hết hạn (≤30 ngày)</div>
               <div className="space-y-1.5">

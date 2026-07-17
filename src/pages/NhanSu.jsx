@@ -258,7 +258,7 @@ export default function NhanSu() {
         </div>
       </div>
 
-      <div className="flex gap-3 mb-4">
+      <div className="flex flex-wrap gap-3 mb-4">
         <input
           placeholder="Tìm theo Mã NV, tên, SĐT..."
           value={search}
@@ -275,19 +275,19 @@ export default function NhanSu() {
         </select>
       </div>
 
-      <Card>
+      <Card className="overflow-x-auto">
         {loading ? <LoadingState /> : error ? <div className="p-4"><ErrorState message={error} /></div> : filtered.length === 0 ? (
           <EmptyState title="Không có nhân viên nào" action={<Button variant="accent" onClick={openAdd}>+ Thêm nhân viên</Button>} />
         ) : (
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-xs text-[var(--color-text-muted)] uppercase tracking-wide border-b border-[var(--color-line)]">
-                <th className="px-5 py-3 font-medium">Mã NV</th>
+                <th className="px-5 py-3 font-medium sticky left-0 bg-[var(--color-surface)]">Mã NV</th>
                 <th className="px-5 py-3 font-medium">Họ tên</th>
-                <th className="px-5 py-3 font-medium">Khối</th>
-                <th className="px-5 py-3 font-medium">Chức vụ</th>
-                <th className="px-5 py-3 font-medium">Nơi làm việc</th>
-                <th className="px-5 py-3 font-medium">Hồ sơ</th>
+                <th className="px-5 py-3 font-medium hidden sm:table-cell">Khối</th>
+                <th className="px-5 py-3 font-medium hidden md:table-cell">Chức vụ</th>
+                <th className="px-5 py-3 font-medium hidden md:table-cell">Nơi làm việc</th>
+                <th className="px-5 py-3 font-medium hidden sm:table-cell">Hồ sơ</th>
                 <th className="px-5 py-3 font-medium">Trạng thái</th>
                 <th className="px-5 py-3 font-medium text-right">Thao tác</th>
               </tr>
@@ -298,17 +298,17 @@ export default function NhanSu() {
                 const warning = getRetirementWarning(emp['Ngày sinh'], emp['Giới tính'])
                 return (
                   <tr key={emp['Mã NV']} className="border-b border-[var(--color-line)] last:border-0 hover:bg-black/[0.015]">
-                    <td className="px-5 py-3 font-medium text-[var(--color-ink)]">
+                    <td className="px-5 py-3 font-medium text-[var(--color-ink)] sticky left-0 bg-[var(--color-surface)]">
                       <button onClick={() => openDetail(emp['Mã NV'])} className="hover:underline">{emp['Mã NV']}</button>
                     </td>
                     <td className="px-5 py-3">
                       <button onClick={() => openDetail(emp['Mã NV'])} className="hover:underline text-left">{emp['Họ tên']}</button>
                       {warning && <span title={warning.text} className="ml-1.5 text-xs">⚠</span>}
                     </td>
-                    <td className="px-5 py-3 text-[var(--color-text-muted)]">{KHOI_LABELS[emp['Khối']] || emp['Khối']}</td>
-                    <td className="px-5 py-3 text-[var(--color-text-muted)]">{emp['Chức vụ']}</td>
-                    <td className="px-5 py-3 text-[var(--color-text-muted)]">{emp['Nơi làm việc']}</td>
-                    <td className="px-5 py-3">
+                    <td className="px-5 py-3 text-[var(--color-text-muted)] hidden sm:table-cell">{KHOI_LABELS[emp['Khối']] || emp['Khối']}</td>
+                    <td className="px-5 py-3 text-[var(--color-text-muted)] hidden md:table-cell">{emp['Chức vụ']}</td>
+                    <td className="px-5 py-3 text-[var(--color-text-muted)] hidden md:table-cell">{emp['Nơi làm việc']}</td>
+                    <td className="px-5 py-3 hidden sm:table-cell">
                       <Badge className={completionColor(percent)}>{done}/{total}</Badge>
                     </td>
                     <td className="px-5 py-3">

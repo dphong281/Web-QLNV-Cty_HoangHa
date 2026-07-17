@@ -175,7 +175,7 @@ export default function HopDong() {
         <Button variant="ghost" onClick={handleExportExpiring}>⬇ Xuất Excel hợp đồng sắp hết hạn</Button>
       </div>
 
-      <div className="flex gap-3 mb-4">
+      <div className="flex flex-wrap gap-3 mb-4">
         <input placeholder="Tìm theo mã HĐ, mã NV, tên..." value={search} onChange={(e) => setSearch(e.target.value)}
           className="flex-1 max-w-xs px-3 py-2 rounded-lg border border-[var(--color-line)] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/40" />
         <select value={filterTrangThai} onChange={(e) => setFilterTrangThai(e.target.value)} className="px-3 py-2 rounded-lg border border-[var(--color-line)] bg-white text-sm">
@@ -188,14 +188,15 @@ export default function HopDong() {
         {loading ? <LoadingState /> : error ? <div className="p-4"><ErrorState message={error} /></div> : filtered.length === 0 ? (
           <EmptyState title="Chưa có hợp đồng nào" action={<Button variant="accent" onClick={openAdd}>+ Ký hợp đồng mới</Button>} />
         ) : (
+          <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-xs text-[var(--color-text-muted)] uppercase tracking-wide border-b border-[var(--color-line)]">
-                <th className="px-5 py-3 font-medium">Mã HĐ</th>
-                <th className="px-5 py-3 font-medium">Nhân viên</th>
+                <th className="px-5 py-3 font-medium hidden sm:table-cell">Mã HĐ</th>
+                <th className="px-5 py-3 font-medium sticky left-0 bg-[var(--color-surface)]">Nhân viên</th>
                 <th className="px-5 py-3 font-medium">Loại HĐ</th>
-                <th className="px-5 py-3 font-medium">Thời hạn</th>
-                <th className="px-5 py-3 font-medium text-right">Lương cơ bản</th>
+                <th className="px-5 py-3 font-medium hidden md:table-cell">Thời hạn</th>
+                <th className="px-5 py-3 font-medium text-right hidden md:table-cell">Lương cơ bản</th>
                 <th className="px-5 py-3 font-medium">Trạng thái</th>
                 <th className="px-5 py-3 font-medium text-right">Thao tác</th>
               </tr>
@@ -203,10 +204,10 @@ export default function HopDong() {
             <tbody>
               {filtered.map((c) => (
                 <tr key={c.ma_hd} className="border-b border-[var(--color-line)] last:border-0 hover:bg-black/[0.015]">
-                  <td className="px-5 py-3 font-medium text-[var(--color-ink)]">
+                  <td className="px-5 py-3 font-medium text-[var(--color-ink)] hidden sm:table-cell">
                     {c.so_hd_goc || <span className="text-[var(--color-text-muted)] font-normal">—</span>}
                   </td>
-                  <td className="px-5 py-3">
+                  <td className="px-5 py-3 sticky left-0 bg-[var(--color-surface)]">
                     <Link to={`/nhan-su?detail=${c.ma_nv}`} className="hover:underline">{c.hoTen}</Link>{' '}
                     <span className="text-xs text-[var(--color-text-muted)]">({c.ma_nv})</span>
                   </td>
@@ -216,8 +217,8 @@ export default function HopDong() {
                       <Badge className={c.ket_qua_danh_gia === 'Đạt' ? 'bg-[var(--color-good)]/10 text-[var(--color-good)] ml-2' : 'bg-[var(--color-danger)]/10 text-[var(--color-danger)] ml-2'}>{c.ket_qua_danh_gia}</Badge>
                     )}
                   </td>
-                  <td className="px-5 py-3 text-[var(--color-text-muted)]">{formatDate(c.ngay_hieu_luc)} → {c.ngay_het_han ? formatDate(c.ngay_het_han) : 'Không XĐ'}</td>
-                  <td className="px-5 py-3 text-right font-medium">{formatCurrency(c.luong_co_ban)}</td>
+                  <td className="px-5 py-3 text-[var(--color-text-muted)] hidden md:table-cell">{formatDate(c.ngay_hieu_luc)} → {c.ngay_het_han ? formatDate(c.ngay_het_han) : 'Không XĐ'}</td>
+                  <td className="px-5 py-3 text-right font-medium hidden md:table-cell">{formatCurrency(c.luong_co_ban)}</td>
                   <td className="px-5 py-3"><Badge className={TRANG_THAI_HIEN_THI_COLORS[c.trangThaiHienThi]}>{TRANG_THAI_HIEN_THI_LABELS[c.trangThaiHienThi]}</Badge></td>
                   <td className="px-5 py-3 text-right space-x-2">
                     <button onClick={() => setPrintTarget({ maNv: c.ma_nv, loaiVanBan: c.loai_hd === 'ThuViec' ? 'ThuViec' : 'HopDongLaoDong', contract: c })} className="text-[var(--color-ink)] hover:underline text-sm font-medium">In</button>
@@ -232,6 +233,7 @@ export default function HopDong() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </Card>
       </>
@@ -243,17 +245,17 @@ export default function HopDong() {
             <Input label="Mã nhân viên *" required value={form.maNv} onChange={(e) => setForm({ ...form, maNv: e.target.value })} placeholder="VD: HH011" />
           )}
           <Input label="Mã HĐ" value={form.soHdGoc} onChange={(e) => setForm({ ...form, soHdGoc: e.target.value })} placeholder="Số hợp đồng công ty tự đánh, VD: 015/2026 (để trống nếu không có)" />
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Select label="Loại hợp đồng" value={form.loaiHd} onChange={(e) => setForm({ ...form, loaiHd: e.target.value })}>
               {Object.entries(LOAI_HD_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
             </Select>
             {!editing && <Input label="Ngày ký *" type="date" required value={form.ngayKy} onChange={(e) => setForm({ ...form, ngayKy: e.target.value })} />}
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {!editing && <Input label="Ngày hiệu lực *" type="date" required value={form.ngayHieuLuc} onChange={(e) => setForm({ ...form, ngayHieuLuc: e.target.value })} />}
             <Input label="Ngày hết hạn (để trống nếu không xác định)" type="date" value={form.ngayHetHan} onChange={(e) => setForm({ ...form, ngayHetHan: e.target.value })} />
           </div>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Input label="Lương cơ bản *" type="number" required value={form.luongCoBan} onChange={(e) => setForm({ ...form, luongCoBan: e.target.value })} />
             <Input label="Phụ cấp độc hại" type="number" value={form.phuCapDocHai} onChange={(e) => setForm({ ...form, phuCapDocHai: e.target.value })} />
             <Input label="Phụ cấp trách nhiệm" type="number" value={form.phuCapTrachNhiem} onChange={(e) => setForm({ ...form, phuCapTrachNhiem: e.target.value })} />

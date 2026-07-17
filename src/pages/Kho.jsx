@@ -78,7 +78,7 @@ export default function Kho() {
         <Button variant="accent" onClick={openAdd}>+ Ghi nhận nhập/xuất</Button>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 mb-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
         <Card className="p-4">
           <div className="text-xs text-[var(--color-text-muted)] uppercase">Tổng nhập (lít)</div>
           <div className="font-display text-xl font-semibold text-[var(--color-good)]">{tongNhap.toLocaleString('vi-VN')}</div>
@@ -96,29 +96,32 @@ export default function Kho() {
         </select>
       </div>
 
-      <Card>
+      <Card className="overflow-x-auto">
         {loading ? <LoadingState /> : error ? <div className="p-4"><ErrorState message={error} /></div> : list.length === 0 ? (
           <EmptyState title="Chưa có bản ghi nào" action={<Button variant="accent" onClick={openAdd}>+ Ghi nhận nhập/xuất</Button>} />
         ) : (
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-xs text-[var(--color-text-muted)] uppercase tracking-wide border-b border-[var(--color-line)]">
-                <th className="px-4 py-3 font-medium">Ngày</th>
+                <th className="px-4 py-3 font-medium sticky left-0 bg-[var(--color-surface)]">Ngày</th>
                 <th className="px-4 py-3 font-medium">Đơn vị</th>
                 <th className="px-4 py-3 font-medium">Loại</th>
-                <th className="px-4 py-3 font-medium text-right">Số lít</th>
-                <th className="px-4 py-3 font-medium">Ghi chú</th>
+                <th className="px-4 py-3 font-medium text-right hidden sm:table-cell">Số lít</th>
+                <th className="px-4 py-3 font-medium hidden md:table-cell">Ghi chú</th>
                 <th className="px-4 py-3 font-medium text-right">Thao tác</th>
               </tr>
             </thead>
             <tbody>
               {list.map((r) => (
                 <tr key={r.id} className="border-b border-[var(--color-line)] last:border-0 hover:bg-black/[0.015]">
-                  <td className="px-4 py-2.5">{formatDate(r.ngay)}</td>
-                  <td className="px-4 py-2.5">{r.tenDonVi}</td>
+                  <td className="px-4 py-2.5 sticky left-0 bg-[var(--color-surface)]">{formatDate(r.ngay)}</td>
+                  <td className="px-4 py-2.5">
+                    {r.tenDonVi}
+                    <div className="text-xs text-[var(--color-text-muted)] sm:hidden">{(r.so_luong_lit || 0).toLocaleString('vi-VN')} lít</div>
+                  </td>
                   <td className="px-4 py-2.5"><Badge className={r.loai === 'NhapKho' ? 'bg-[var(--color-good)]/10 text-[var(--color-good)]' : 'bg-[var(--color-danger)]/10 text-[var(--color-danger)]'}>{LOAI_LABELS[r.loai]}</Badge></td>
-                  <td className="px-4 py-2.5 text-right">{(r.so_luong_lit || 0).toLocaleString('vi-VN')}</td>
-                  <td className="px-4 py-2.5 text-[var(--color-text-muted)]">{r.ghi_chu || '—'}</td>
+                  <td className="px-4 py-2.5 text-right hidden sm:table-cell">{(r.so_luong_lit || 0).toLocaleString('vi-VN')}</td>
+                  <td className="px-4 py-2.5 text-[var(--color-text-muted)] hidden md:table-cell">{r.ghi_chu || '—'}</td>
                   <td className="px-4 py-2.5 text-right">
                     <button onClick={() => handleDelete(r.id)} className="text-[var(--color-danger)] hover:underline text-sm font-medium">Xoá</button>
                   </td>
@@ -138,7 +141,7 @@ export default function Kho() {
           <Select label="Loại" value={form.loai} onChange={(e) => setForm({ ...form, loai: e.target.value })}>
             {Object.entries(LOAI_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </Select>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input label="Số lít *" type="number" required value={form.so_luong_lit} onChange={(e) => setForm({ ...form, so_luong_lit: e.target.value })} />
             <Input label="Ngày *" type="date" required value={form.ngay} onChange={(e) => setForm({ ...form, ngay: e.target.value })} />
           </div>

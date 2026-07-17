@@ -221,16 +221,16 @@ export default function Luong() {
         </Card>
       )}
 
-      <Card className={showDetail ? 'overflow-x-auto' : ''}>
+      <Card className="overflow-x-auto">
         {loading ? <LoadingState /> : error ? <div className="p-4"><ErrorState message={error} /></div> : rows.length === 0 ? (
           <EmptyState title="Chưa tính lương cho kỳ này" sub="Bấm 'Tính lương' để hệ thống tự tính dựa trên hợp đồng, ca đêm, OT, chuyến hàng, vắng mặt." action={<Button variant="accent" onClick={handleGenerate}>🧮 Tính lương</Button>} />
         ) : (
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-xs text-[var(--color-text-muted)] uppercase tracking-wide border-b border-[var(--color-line)]">
-                <th className="px-4 py-3 font-medium">Mã NV</th>
-                <th className="px-4 py-3 font-medium">Họ tên</th>
-                <th className="px-4 py-3 font-medium">Khối</th>
+                <th className="px-4 py-3 font-medium sticky left-0 bg-[var(--color-surface)]">Mã NV</th>
+                <th className="px-4 py-3 font-medium hidden sm:table-cell">Họ tên</th>
+                <th className="px-4 py-3 font-medium hidden md:table-cell">Khối</th>
                 <th className="px-4 py-3 font-medium text-right">Lương CB</th>
                 <th className="px-4 py-3 font-medium text-right">Phụ cấp</th>
                 {showDetail && DETAIL_COLUMNS.map(([key, label]) => (
@@ -250,13 +250,13 @@ export default function Luong() {
             <tbody>
               {rows.map((r) => (
                 <tr key={r.payrollId} className="border-b border-[var(--color-line)] last:border-0 hover:bg-black/[0.015]">
-                  <td className="px-4 py-2.5 font-medium text-[var(--color-ink)]">
+                  <td className="px-4 py-2.5 font-medium text-[var(--color-ink)] sticky left-0 bg-[var(--color-surface)]">
                     <button onClick={() => openHoSoLuong(r.maNv)} className="hover:underline">{r.maNv}</button>
                   </td>
-                  <td className="px-4 py-2.5">
+                  <td className="px-4 py-2.5 hidden sm:table-cell">
                     <button onClick={() => openHoSoLuong(r.maNv)} className="hover:underline text-left">{r.hoTen}</button>
                   </td>
-                  <td className="px-4 py-2.5 text-[var(--color-text-muted)]">{KHOI_LABELS[r.khoi] || r.khoi}</td>
+                  <td className="px-4 py-2.5 text-[var(--color-text-muted)] hidden md:table-cell">{KHOI_LABELS[r.khoi] || r.khoi}</td>
                   <td className="px-4 py-2.5 text-right">{money(r.luongCoBan)}</td>
                   <td className="px-4 py-2.5 text-right">{money(r.phuCap)}</td>
                   {showDetail && DETAIL_COLUMNS.map(([key]) => (
@@ -284,7 +284,7 @@ export default function Luong() {
             {ALLOWANCE_GROUPS.map((group) => (
               <div key={group.title}>
                 <h4 className="text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wide mb-2">{group.title}</h4>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {group.fields.map(([key, label]) => (
                     <Input
                       key={key}
@@ -298,7 +298,7 @@ export default function Luong() {
               </div>
             ))}
 
-            <Card className="p-4 grid grid-cols-2 gap-4">
+            <Card className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <div className="text-xs text-[var(--color-text-muted)] uppercase">Tổng phụ cấp</div>
                 <div className="font-display text-lg font-semibold text-[var(--color-ink)]">{formatCurrency(tinhTongPhuCap(hsForm))}</div>
