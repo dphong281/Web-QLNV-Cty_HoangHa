@@ -318,6 +318,22 @@ export async function importContractStagesFromExcel(rows) {
       if (luongCoBan > 0) {
         await upsertHoSoLuong(maNv, { luong_co_ban: luongCoBan, phu_cap_co_dinh: phuCapTrachNhiem + phuCapDocHai })
       }
+
+      // Đồng bộ lại "Trạng thái" của nhân viên theo đúng giai đoạn hợp đồng hiện tại (giai
+      // đoạn cuối cùng có dữ liệu) — tránh trường hợp cột "Tình trạng làm việc" trong Excel bị
+      // để trống/khác lúc nhập nhân viên, dẫn đến lọc "Thử việc" ở Nhân sự ra rỗng dù người đó
+      // đang có hợp đồng thử việc còn hiệu lực. CHỈ đồng bộ giữa ThuViec <-> DangLamViec —
+      // không đụng tới Tạm nghỉ/Nghỉ thai sản/Đã nghỉ việc vì đó là trạng thái HR chủ động đặt,
+      // không thể suy ra từ loại hợp đồng.
+      if (row.stages.length) {
+        const lastStage = row.stages[row.stages.length - 1]
+        const trangThaiDungTheoHopDong = lastStage.loaiHd === 'ThuViec' ? 'ThuViec' : 'DangLamViec'
+        const nvRes = await supabase.from('nhan_vien').select('"Trạng thái"').eq('Mã NV', maNv).limit(1)
+        const trangThaiHienTai = nvRes.data?.[0]?.['Trạng thái']
+        if (['DangLamViec', 'ThuViec'].includes(trangThaiHienTai) && trangThaiHienTai !== trangThaiDungTheoHopDong) {
+          await supabase.from('nhan_vien').update({ 'Trạng thái': trangThaiDungTheoHopDong }).eq('Mã NV', maNv)
+        }
+      }
     } catch (err) {
       result.errors.push([row.maNv, err.message])
     }
