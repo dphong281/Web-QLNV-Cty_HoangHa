@@ -254,22 +254,47 @@ export async function getContractHistoryTable() {
 // Giai đoạn cuối cùng có dữ liệu trong mỗi nhân viên -> đánh dấu DangHieuLuc, các giai đoạn
 // trước đó (đã bị thay thế) -> DaThanhLy. Chạy lại nhiều lần không tạo trùng — nếu đã có
 // hợp đồng cùng (mã NV, loại HĐ, lần thứ mấy) thì cập nhật thay vì thêm mới.
+// Chạy fn cho từng phần tử của items theo LÔ (song song trong lô, tuần tự giữa các lô) —
+// nhanh hơn nhiều so với chạy từng cái một, nhưng không dồn hết cùng lúc để tránh vượt giới
+// hạn kết nối của Supabase (đặc biệt ở gói free).
+async function runInBatches(items, batchSize, fn) {
+  for (let i = 0; i < items.length; i += batchSize) {
+    await Promise.all(items.slice(i, i + batchSize).map(fn))
+  }
+}
+
 export async function importContractStagesFromExcel(rows) {
   const result = { inserted: 0, updated: 0, errors: [], warnings: [] }
   const withStages = rows.filter((r) => r.stages?.length)
   if (!withStages.length) return result
 
-  // Số thứ tự HĐ tiếp theo, dùng chung 1 bộ đếm cho cả batch để đỡ phải query từng dòng.
-  const countRes = await supabase.from('hop_dong').select('ma_hd', { count: 'exact', head: true })
+  const maNvList = withStages.map((r) => r.maNv.trim().toUpperCase())
+
+  // Tải trước 1 LẦN cho cả đợt (hợp đồng hiện có + trạng thái nhân viên hiện có của TẤT CẢ
+  // người trong file) thay vì tải riêng từng người một — đây là phần tốn thời gian nhất trước
+  // đây (~130 người × nhiều lượt gọi tuần tự).
+  const [existingRes, nvRes, countRes] = await Promise.all([
+    supabase.from('hop_dong').select('*').in('ma_nv', maNvList),
+    supabase.from('nhan_vien').select('"Mã NV", "Trạng thái"').in('Mã NV', maNvList),
+    supabase.from('hop_dong').select('ma_hd', { count: 'exact', head: true }),
+  ])
+  if (existingRes.error) throw existingRes.error
+  if (nvRes.error) throw nvRes.error
+
+  const existingByNv = {}
+  for (const c of existingRes.data) (existingByNv[c.ma_nv] ||= []).push(c)
+  const trangThaiByNv = Object.fromEntries(nvRes.data.map((n) => [n['Mã NV'], n['Trạng thái']]))
+
   let nextSeq = (countRes.count || 0) + 1
+  const toInsert = []
+  const toUpdate = []
+  const hoSoLuongRows = []
+  const trangThaiUpdates = []
 
   for (const row of withStages) {
     try {
       const maNv = row.maNv.trim().toUpperCase()
-      const existingRes = await supabase.from('hop_dong').select('*').eq('ma_nv', maNv)
-      if (existingRes.error) throw existingRes.error
-      const existing = existingRes.data
-
+      const existing = existingByNv[maNv] || []
       const luongCoBan = Number(row.luongCoBan) || 0
       const phuCapTrachNhiem = Number(row.phuCapTrachNhiem) || 0
       const phuCapDocHai = Number(row.phuCapDocHai) || 0
@@ -301,22 +326,24 @@ export async function importContractStagesFromExcel(rows) {
         if (stage.loaiHd === 'ThuViec') payload.ket_qua_danh_gia = stage.ketQuaDanhGia || 'Chưa đánh giá'
 
         if (match) {
-          const upd = await supabase.from('hop_dong').update(payload).eq('ma_hd', match.ma_hd)
-          if (upd.error) throw upd.error
+          toUpdate.push({ maHd: match.ma_hd, payload })
           result.updated += 1
         } else {
           // Khoá chính LUÔN do hệ thống tự sinh (Mã HĐ hệ thống) — không dùng thẳng số HĐ
           // trong Excel vì đó là số công ty tự đánh tay, không đảm bảo duy nhất toàn hệ thống.
           const maHd = seqToSystemCode(nextSeq)
           nextSeq += 1
-          const ins = await supabase.from('hop_dong').insert({ ma_hd: maHd, ...payload })
-          if (ins.error) throw ins.error
+          toInsert.push({ ma_hd: maHd, ...payload })
           result.inserted += 1
         }
       }
 
       if (luongCoBan > 0) {
-        await upsertHoSoLuong(maNv, { luong_co_ban: luongCoBan, phu_cap_co_dinh: phuCapTrachNhiem + phuCapDocHai })
+        hoSoLuongRows.push({
+          ma_nv: maNv,
+          luong_co_ban: await encryptValue(luongCoBan),
+          phu_cap_co_dinh: await encryptValue(phuCapTrachNhiem + phuCapDocHai),
+        })
       }
 
       // Đồng bộ lại "Trạng thái" của nhân viên theo đúng giai đoạn hợp đồng hiện tại (giai
@@ -328,16 +355,34 @@ export async function importContractStagesFromExcel(rows) {
       if (row.stages.length) {
         const lastStage = row.stages[row.stages.length - 1]
         const trangThaiDungTheoHopDong = lastStage.loaiHd === 'ThuViec' ? 'ThuViec' : 'DangLamViec'
-        const nvRes = await supabase.from('nhan_vien').select('"Trạng thái"').eq('Mã NV', maNv).limit(1)
-        const trangThaiHienTai = nvRes.data?.[0]?.['Trạng thái']
+        const trangThaiHienTai = trangThaiByNv[maNv]
         if (['DangLamViec', 'ThuViec'].includes(trangThaiHienTai) && trangThaiHienTai !== trangThaiDungTheoHopDong) {
-          await supabase.from('nhan_vien').update({ 'Trạng thái': trangThaiDungTheoHopDong }).eq('Mã NV', maNv)
+          trangThaiUpdates.push({ maNv, trangThai: trangThaiDungTheoHopDong })
         }
       }
     } catch (err) {
       result.errors.push([row.maNv, err.message])
     }
   }
+
+  // Ghi xuống DB: hợp đồng mới gộp thành 1 lệnh insert; phần còn lại (update hợp đồng cũ,
+  // đồng bộ trạng thái) chạy song song theo lô 15 thay vì tuần tự từng người.
+  if (toInsert.length) {
+    const ins = await supabase.from('hop_dong').insert(toInsert)
+    if (ins.error) result.errors.push(['(hàng loạt)', `Lỗi thêm hợp đồng mới: ${ins.error.message}`])
+  }
+  if (hoSoLuongRows.length) {
+    const hs = await supabase.from('ho_so_luong').upsert(hoSoLuongRows, { onConflict: 'ma_nv' })
+    if (hs.error) result.errors.push(['(hàng loạt)', `Lỗi cập nhật đơn giá lương: ${hs.error.message}`])
+  }
+  await runInBatches(toUpdate, 15, async ({ maHd, payload }) => {
+    const upd = await supabase.from('hop_dong').update(payload).eq('ma_hd', maHd)
+    if (upd.error) result.errors.push([maHd, upd.error.message])
+  })
+  await runInBatches(trangThaiUpdates, 15, async ({ maNv, trangThai }) => {
+    await supabase.from('nhan_vien').update({ 'Trạng thái': trangThai }).eq('Mã NV', maNv)
+  })
+
   return result
 }
 

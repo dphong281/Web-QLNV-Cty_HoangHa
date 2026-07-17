@@ -1,5 +1,3 @@
-import PizZip from 'pizzip'
-import Docxtemplater from 'docxtemplater'
 import { parseFlexibleDate } from './format'
 
 // ---------- Ánh xạ Khối -> hậu tố file mẫu ----------
@@ -173,6 +171,12 @@ async function loadTemplateFile(fileName) {
 export async function generateAndDownloadContract(templateKey, values, downloadName) {
   const config = PRINT_TEMPLATES[templateKey]
   if (!config) throw new Error('Không tìm thấy mẫu in phù hợp.')
+
+  // Chỉ tải thư viện tạo file Word khi thực sự bấm in — không tải kèm cho mọi trang khác.
+  const [{ default: PizZip }, { default: Docxtemplater }] = await Promise.all([
+    import('pizzip'),
+    import('docxtemplater'),
+  ])
 
   const content = await loadTemplateFile(config.file)
   const zip = new PizZip(content)

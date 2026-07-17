@@ -55,8 +55,26 @@ const ENCRYPTED_FIELDS = [
 
 async function decryptEmployee(e) {
   const result = { ...e }
-  for (const f of ENCRYPTED_FIELDS) result[f] = await decryptValue(e[f])
+  await Promise.all(ENCRYPTED_FIELDS.map(async (f) => { result[f] = await decryptValue(e[f]) }))
   return result
+}
+
+// Trường mã hoá thực sự cần cho DANH SÁCH Nhân sự (tìm kiếm theo SĐT + hiển thị cột Chức vụ) —
+// dùng cho trang danh sách thay vì giải mã hết 28 trường như getAllEmployees, giảm hẳn khối
+// lượng giải mã mỗi lần tải trang (chi tiết đầy đủ chỉ giải mã khi bấm xem 1 người, qua
+// getEmployeeByMa).
+const LIST_FIELDS = ['Chức vụ', 'Số ĐT']
+
+async function decryptEmployeeForList(e) {
+  const result = { ...e }
+  await Promise.all(LIST_FIELDS.map(async (f) => { result[f] = await decryptValue(e[f]) }))
+  return result
+}
+
+export async function getAllEmployeesList() {
+  const res = await supabase.from('nhan_vien').select(COLUMNS).order('Mã NV')
+  if (res.error) throw res.error
+  return Promise.all(res.data.map(decryptEmployeeForList))
 }
 
 export async function getAllEmployees({ khoi, chucVu, noiLamViec, trangThai, keyword } = {}) {

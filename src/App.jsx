@@ -1,19 +1,27 @@
+import { Suspense, lazy } from 'react'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
 import Layout, { isItemVisible } from './components/Layout'
 import Login from './pages/Login'
-import Dashboard from './pages/Dashboard'
-import NhanSu from './pages/NhanSu'
-import HopDong from './pages/HopDong'
-import CaKip from './pages/CaKip'
-import ChamCong from './pages/ChamCong'
-import Luong from './pages/Luong'
-import ChuyenHang from './pages/ChuyenHang'
-import Kho from './pages/Kho'
-import KhachHang from './pages/KhachHang'
-import TaiKhoan from './pages/TaiKhoan'
-import CaiDat from './pages/CaiDat'
-import NhatKy from './pages/NhatKy'
+
+// Tải theo từng trang (code splitting) — vào Nhân sự không phải tải kèm code
+// của Kho/Chuyến hàng/in ấn... giúp trang đầu tiên tải nhanh hơn hẳn.
+const Dashboard = lazy(() => import('./pages/Dashboard'))
+const NhanSu = lazy(() => import('./pages/NhanSu'))
+const HopDong = lazy(() => import('./pages/HopDong'))
+const CaKip = lazy(() => import('./pages/CaKip'))
+const ChamCong = lazy(() => import('./pages/ChamCong'))
+const Luong = lazy(() => import('./pages/Luong'))
+const ChuyenHang = lazy(() => import('./pages/ChuyenHang'))
+const Kho = lazy(() => import('./pages/Kho'))
+const KhachHang = lazy(() => import('./pages/KhachHang'))
+const TaiKhoan = lazy(() => import('./pages/TaiKhoan'))
+const CaiDat = lazy(() => import('./pages/CaiDat'))
+const NhatKy = lazy(() => import('./pages/NhatKy'))
+
+function PageLoading() {
+  return <div className="p-8 text-sm text-[var(--color-text-muted)]">Đang tải...</div>
+}
 
 // Chặn truy cập trực tiếp qua URL vào trang không được phép xem — phòng trường
 // hợp gõ thẳng đường dẫn thay vì bấm qua sidebar (sidebar chỉ ẩn nút, không
@@ -43,21 +51,23 @@ export default function App() {
 
   return (
     <Layout>
-      <Routes>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/nhan-su" element={<RouteGuard><NhanSu /></RouteGuard>} />
-        <Route path="/hop-dong" element={<RouteGuard><HopDong /></RouteGuard>} />
-        <Route path="/ca-kip" element={<RouteGuard><CaKip /></RouteGuard>} />
-        <Route path="/cham-cong" element={<RouteGuard><ChamCong /></RouteGuard>} />
-        <Route path="/luong" element={<RouteGuard><Luong /></RouteGuard>} />
-        <Route path="/chuyen-hang" element={<RouteGuard><ChuyenHang /></RouteGuard>} />
-        <Route path="/kho" element={<RouteGuard><Kho /></RouteGuard>} />
-        <Route path="/khach-hang" element={<RouteGuard><KhachHang /></RouteGuard>} />
-        <Route path="/tai-khoan" element={<RouteGuard><TaiKhoan /></RouteGuard>} />
-        <Route path="/nhat-ky" element={<RouteGuard><NhatKy /></RouteGuard>} />
-        <Route path="/cai-dat" element={<CaiDat />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+      <Suspense fallback={<PageLoading />}>
+        <Routes>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/nhan-su" element={<RouteGuard><NhanSu /></RouteGuard>} />
+          <Route path="/hop-dong" element={<RouteGuard><HopDong /></RouteGuard>} />
+          <Route path="/ca-kip" element={<RouteGuard><CaKip /></RouteGuard>} />
+          <Route path="/cham-cong" element={<RouteGuard><ChamCong /></RouteGuard>} />
+          <Route path="/luong" element={<RouteGuard><Luong /></RouteGuard>} />
+          <Route path="/chuyen-hang" element={<RouteGuard><ChuyenHang /></RouteGuard>} />
+          <Route path="/kho" element={<RouteGuard><Kho /></RouteGuard>} />
+          <Route path="/khach-hang" element={<RouteGuard><KhachHang /></RouteGuard>} />
+          <Route path="/tai-khoan" element={<RouteGuard><TaiKhoan /></RouteGuard>} />
+          <Route path="/nhat-ky" element={<RouteGuard><NhatKy /></RouteGuard>} />
+          <Route path="/cai-dat" element={<CaiDat />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
     </Layout>
   )
 }

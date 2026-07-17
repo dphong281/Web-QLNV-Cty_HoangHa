@@ -2,13 +2,16 @@ import { supabase } from './supabase'
 import { decryptValue } from './fernetCrypto'
 import { BO_PHAN_OPTIONS } from './danhMuc'
 import { parseFlexibleDate } from './format'
+import { withCache } from './queryCache'
+
+const CACHE_TTL = 2 * 60 * 1000
 
 function parseDate(v) {
   return parseFlexibleDate(v)
 }
 
 // ---------- SINH NHẬT ----------
-export async function getBirthdays() {
+async function _getBirthdays() {
   const res = await supabase
     .from('nhan_vien')
     .select('"Mã NV", "Họ tên", "Nơi làm việc", "Ngày sinh"')
@@ -56,7 +59,7 @@ function ghiChu(tyLe) {
   return 'Biến động cao'
 }
 
-export async function getBienDongNhanSu(year = new Date().getFullYear()) {
+async function _getBienDongNhanSu(year = new Date().getFullYear()) {
   const res = await supabase.from('nhan_vien').select('"Mã NV", "Ngày vào Cty", "Ngày nghỉ việc", "Trạng thái"')
   if (res.error) throw res.error
 
@@ -116,7 +119,7 @@ export async function getBienDongNhanSu(year = new Date().getFullYear()) {
 }
 
 // ---------- BÁO CÁO CƠ CẤU NHÂN SỰ THEO BỘ PHẬN ----------
-export async function getCoCauBoPhan() {
+async function _getCoCauBoPhan() {
   const res = await supabase.from('nhan_vien').select('"Nơi làm việc"').eq('Trạng thái', 'DangLamViec')
   if (res.error) throw res.error
 
@@ -145,3 +148,7 @@ export async function getCoCauBoPhan() {
     boPhanTrongDanhMuc: BO_PHAN_OPTIONS.length,
   }
 }
+
+export const getBirthdays = withCache('birthdays', CACHE_TTL, _getBirthdays)
+export const getBienDongNhanSu = withCache('bienDongNhanSu', CACHE_TTL, _getBienDongNhanSu)
+export const getCoCauBoPhan = withCache('coCauBoPhan', CACHE_TTL, _getCoCauBoPhan)

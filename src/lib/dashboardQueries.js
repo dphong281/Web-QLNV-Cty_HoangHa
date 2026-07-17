@@ -1,5 +1,8 @@
 import { supabase } from './supabase'
 import { decryptValue } from './fernetCrypto'
+import { withCache } from './queryCache'
+
+const CACHE_TTL = 2 * 60 * 1000 // 2 phút — đủ để mượt khi chuyển qua lại giữa các tab Dashboard
 
 const NGUONG_SAP_HET_HAN_NGAY = 30
 
@@ -19,7 +22,7 @@ export function computeDisplayStatus(contract) {
 
 // Y hệt EmployeeModel.get_dashboard_summary_stats() + ContractModel.get_dashboard_contract_raw()
 // + DashboardLogic._tinh_chi_so_va_canh_bao()
-export async function getChiSoChungVaCanhBao() {
+async function _getChiSoChungVaCanhBao() {
   const [empRes, hdRes] = await Promise.all([
     supabase.from('nhan_vien').select('"Mã NV", "Trạng thái", "Giới tính"'),
     supabase.from('hop_dong').select('ma_nv, loai_hd, lan_thu, ngay_het_han, trang_thai'),
@@ -79,7 +82,7 @@ export async function getChiSoChungVaCanhBao() {
 }
 
 // Y hệt EmployeeModel.get_dashboard_active_extra()
-export async function getPhanBoVaThieuThongTin() {
+async function _getPhanBoVaThieuThongTin() {
   const res = await supabase
     .from('nhan_vien')
     .select('"Mã NV", "Họ tên", "Số ĐT", "Khối", "Nơi làm việc", "Ngạch", "Trạng thái"')
@@ -116,3 +119,6 @@ export async function getPhanBoVaThieuThongTin() {
 
   return { phanBoDonVi, phanBoNgach, thieuThongTin }
 }
+
+export const getChiSoChungVaCanhBao = withCache('chiSoChungVaCanhBao', CACHE_TTL, _getChiSoChungVaCanhBao)
+export const getPhanBoVaThieuThongTin = withCache('phanBoVaThieuThongTin', CACHE_TTL, _getPhanBoVaThieuThongTin)

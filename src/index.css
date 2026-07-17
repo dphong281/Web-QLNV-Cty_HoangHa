@@ -17,6 +17,12 @@
 
 * { box-sizing: border-box; }
 
+/* Tailwind reset để cursor mặc định cho <button> là "default" (mũi tên) thay vì "pointer"
+   (bàn tay) như <a> — sửa lại cho mọi nút bấm/thẻ có thể click đều hiện đúng con trỏ tay. */
+button:not(:disabled), [role="button"]:not(:disabled), select, summary {
+  cursor: pointer;
+}
+
 body {
   margin: 0;
   background: var(--color-bg);

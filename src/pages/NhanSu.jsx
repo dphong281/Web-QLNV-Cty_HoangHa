@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import {
-  getAllEmployees, createEmployee, updateEmployee, deactivateEmployee, importEmployeesFromExcel, ConflictError,
+  getAllEmployeesList, getEmployeeByMa, createEmployee, updateEmployee, deactivateEmployee, importEmployeesFromExcel, ConflictError,
 } from '../lib/employeeQueries'
 import { KHOI_LABELS, TRANG_THAI_NV_LABELS, TRANG_THAI_NV_COLORS } from '../lib/format'
 import { NHAN_VIEN_IMPORT_SYNONYMS, NHAN_VIEN_REQUIRED, NHAN_VIEN_HEADERS } from '../lib/importSynonyms'
@@ -66,16 +66,26 @@ export default function NhanSu() {
   useEffect(() => {
     const maNv = searchParams.get('detail')
     if (!maNv || list.length === 0) return
-    const emp = list.find((e) => e['Mã NV'] === maNv)
-    if (emp) setDetail(emp)
+    openDetail(maNv)
     setSearchParams((p) => { p.delete('detail'); return p }, { replace: true })
   }, [list, searchParams])
+
+  // Danh sách chỉ giải mã sẵn Chức vụ + SĐT (đủ để hiển thị bảng + tìm kiếm) — xem chi
+  // tiết/sửa 1 người thì mới tải đầy đủ toàn bộ trường mã hoá của riêng người đó.
+  async function openDetail(maNv) {
+    try {
+      const full = await getEmployeeByMa(maNv)
+      if (full) setDetail(full)
+    } catch (err) {
+      alert('Lỗi: ' + err.message)
+    }
+  }
 
   async function load() {
     setLoading(true)
     setError(null)
     try {
-      setList(await getAllEmployees())
+      setList(await getAllEmployeesList())
     } catch (err) {
       setError(err.message)
     } finally {
@@ -90,12 +100,17 @@ export default function NhanSu() {
     setModalOpen(true)
   }
 
-  function openEdit(emp) {
-    setEditing(emp)
-    setForm({ ...EMPTY_FORM, ...emp, 'Hồ sơ giấy tờ': emp['Hồ sơ giấy tờ'] || {} })
-    setFormError(null)
-    setModalOpen(true)
+  async function openEdit(emp) {
     setDetail(null)
+    setFormError(null)
+    try {
+      const full = await getEmployeeByMa(emp['Mã NV'])
+      setEditing(full)
+      setForm({ ...EMPTY_FORM, ...full, 'Hồ sơ giấy tờ': full['Hồ sơ giấy tờ'] || {} })
+      setModalOpen(true)
+    } catch (err) {
+      alert('Lỗi: ' + err.message)
+    }
   }
 
   async function handleSave(e) {
@@ -284,10 +299,10 @@ export default function NhanSu() {
                 return (
                   <tr key={emp['Mã NV']} className="border-b border-[var(--color-line)] last:border-0 hover:bg-black/[0.015]">
                     <td className="px-5 py-3 font-medium text-[var(--color-ink)]">
-                      <button onClick={() => setDetail(emp)} className="hover:underline">{emp['Mã NV']}</button>
+                      <button onClick={() => openDetail(emp['Mã NV'])} className="hover:underline">{emp['Mã NV']}</button>
                     </td>
                     <td className="px-5 py-3">
-                      <button onClick={() => setDetail(emp)} className="hover:underline text-left">{emp['Họ tên']}</button>
+                      <button onClick={() => openDetail(emp['Mã NV'])} className="hover:underline text-left">{emp['Họ tên']}</button>
                       {warning && <span title={warning.text} className="ml-1.5 text-xs">⚠</span>}
                     </td>
                     <td className="px-5 py-3 text-[var(--color-text-muted)]">{KHOI_LABELS[emp['Khối']] || emp['Khối']}</td>
