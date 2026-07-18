@@ -62,8 +62,20 @@ export const HOP_DONG_IMPORT_SYNONYMS = {
   'Ngày ký không xác định thời hạn': ['ngay_ky_khong_xac_dinh_thoi_han', 'ngay ky khong xac dinh thoi han', 'ngay ky kxdth'],
   'Bắt đầu không xác định thời hạn': ['bat_dau_khong_xac_dinh_thoi_han', 'bat dau khong xac dinh thoi han', 'bat dau kxdth'],
   'Lương chức danh (đóng BHXH)': ['luong_chuc_danh', 'luong chuc danh', 'luong dong bhxh', 'luong co ban'],
+  'Phụ cấp chức danh/chức vụ': ['phu cap chuc danh chuc vu', 'phu cap chuc vu'],
   'Phụ cấp trách nhiệm': ['phu_cap_trach_nhiem', 'phu cap trach nhiem'],
   'Phụ cấp độc hại, nguy hiểm': ['phu_cap_doc_hai', 'phu cap doc hai', 'phu cap doc hai nguy hiem'],
+  'Phụ cấp thâm niên': ['phu cap tham nien'],
+  'Phụ cấp thu hút': ['phu cap thu hut'],
+  'Phụ cấp vùng': ['phu cap vung'],
+  'Phụ cấp kiêm nhiệm': ['phu cap kiem nhiem'],
+  'Lương KPI (hiệu quả công việc)': ['luong kpi', 'luong kpi hieu qua cong viec'],
+  'Phụ cấp xăng xe': ['phu cap xang xe'],
+  'Phụ cấp điện thoại': ['phu cap dien thoai'],
+  'Phụ cấp nhà ở': ['phu cap nha o'],
+  'Phụ cấp ăn ca': ['phu cap an ca'],
+  'Phụ cấp đồng phục': ['phu cap dong phuc'],
+  'Phúc lợi con nhỏ dưới 6 tuổi': ['phuc loi con nho', 'phuc loi con nho duoi 6 tuoi'],
 }
 
 // Cột checklist hồ sơ giấy tờ (Có/Không) trong file Excel gốc — dùng riêng để build "Hồ sơ

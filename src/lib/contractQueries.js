@@ -265,7 +265,11 @@ async function runInBatches(items, batchSize, fn) {
 
 export async function importContractStagesFromExcel(rows) {
   const result = { inserted: 0, updated: 0, errors: [], warnings: [] }
-  const withStages = rows.filter((r) => r.stages?.length)
+  // Trước đây chỉ xử lý người có giai đoạn hợp đồng hợp lệ — khiến ai có sẵn lương/phụ cấp
+  // trong Excel nhưng thiếu ngày hợp đồng hợp lệ thì bị bỏ qua LUÔN CẢ lương. Giờ tách riêng:
+  // xử lý cho bất kỳ ai có hợp đồng HOẶC có lương/phụ cấp > 0.
+  const coLuongPhuCap = (r) => Number(r.luongCoBan) > 0 || Object.values(r.phuCapChiTiet || {}).some((v) => Number(v) > 0)
+  const withStages = rows.filter((r) => r.stages?.length || coLuongPhuCap(r))
   if (!withStages.length) return result
 
   const maNvList = withStages.map((r) => r.maNv.trim().toUpperCase())
@@ -338,12 +342,21 @@ export async function importContractStagesFromExcel(rows) {
         }
       }
 
-      if (luongCoBan > 0) {
-        hoSoLuongRows.push({
+      if (coLuongPhuCap(row)) {
+        const hoSoRow = {
           ma_nv: maNv,
           luong_co_ban: await encryptValue(luongCoBan),
+          // Giữ lại cho tương thích ngược (không dùng để tính lương nữa, xem tinhTongPhuCap).
           phu_cap_co_dinh: await encryptValue(phuCapTrachNhiem + phuCapDocHai),
-        })
+          // "Phụ cấp trách nhiệm"/"độc hại" trong Excel thuộc phần Lương — lưu đúng cột lương
+          // chi tiết (phu_cap_trach_nhiem_luong/phu_cap_doc_hai_luong), tách khỏi bảng hợp đồng.
+          phu_cap_trach_nhiem_luong: await encryptValue(phuCapTrachNhiem),
+          phu_cap_doc_hai_luong: await encryptValue(phuCapDocHai),
+        }
+        for (const [key, val] of Object.entries(row.phuCapChiTiet || {})) {
+          hoSoRow[key] = await encryptValue(Number(val) || 0)
+        }
+        hoSoLuongRows.push(hoSoRow)
       }
 
       // Đồng bộ lại "Trạng thái" của nhân viên theo đúng giai đoạn hợp đồng hiện tại (giai

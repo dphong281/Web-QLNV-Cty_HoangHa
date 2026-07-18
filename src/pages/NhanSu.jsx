@@ -208,6 +208,21 @@ export default function NhanSu() {
       luongCoBan: cellValue(row, colMap, 'Lương chức danh (đóng BHXH)', 0),
       phuCapTrachNhiem: cellValue(row, colMap, 'Phụ cấp trách nhiệm', 0),
       phuCapDocHai: cellValue(row, colMap, 'Phụ cấp độc hại, nguy hiểm', 0),
+      // 11 khoản còn lại — map thẳng theo đúng tên cột ho_so_luong (xem migration_hop_dong_luong_chi_tiet.sql).
+      phuCapChiTiet: {
+        phu_cap_chuc_danh: cellValue(row, colMap, 'Phụ cấp chức danh/chức vụ', 0),
+        phu_cap_tham_nien: cellValue(row, colMap, 'Phụ cấp thâm niên', 0),
+        phu_cap_thu_hut: cellValue(row, colMap, 'Phụ cấp thu hút', 0),
+        phu_cap_vung: cellValue(row, colMap, 'Phụ cấp vùng', 0),
+        phu_cap_kiem_nhiem: cellValue(row, colMap, 'Phụ cấp kiêm nhiệm', 0),
+        luong_kpi: cellValue(row, colMap, 'Lương KPI (hiệu quả công việc)', 0),
+        phu_cap_xang_xe: cellValue(row, colMap, 'Phụ cấp xăng xe', 0),
+        phu_cap_dien_thoai: cellValue(row, colMap, 'Phụ cấp điện thoại', 0),
+        phu_cap_nha_o: cellValue(row, colMap, 'Phụ cấp nhà ở', 0),
+        phu_cap_an_ca: cellValue(row, colMap, 'Phụ cấp ăn ca', 0),
+        phu_cap_dong_phuc: cellValue(row, colMap, 'Phụ cấp đồng phục', 0),
+        phuc_loi_con_nho: cellValue(row, colMap, 'Phúc lợi con nhỏ dưới 6 tuổi', 0),
+      },
       stages,
     }
   }
@@ -365,7 +380,10 @@ export default function NhanSu() {
         buildRow={buildImportRow}
         onImport={async (rows) => {
           const empResult = await importEmployeesFromExcel(rows.map((r) => r.employee))
-          const contractRows = rows.map((r) => r.contract).filter((c) => c.stages.length)
+          // Xử lý cho ai có hợp đồng HOẶC có lương/phụ cấp trong Excel — trước đây lỡ ai
+          // không có ngày hợp đồng hợp lệ thì bị bỏ qua LUÔN CẢ phần lương, dù Excel có sẵn.
+          const coLuongPhuCap = (c) => Number(c.luongCoBan) > 0 || Object.values(c.phuCapChiTiet || {}).some((v) => Number(v) > 0)
+          const contractRows = rows.map((r) => r.contract).filter((c) => c.stages.length || coLuongPhuCap(c))
           const hdResult = contractRows.length ? await importContractStagesFromExcel(contractRows) : { inserted: 0, updated: 0, errors: [], warnings: [] }
           load()
           return {
