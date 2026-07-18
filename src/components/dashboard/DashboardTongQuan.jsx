@@ -89,7 +89,7 @@ export default function DashboardTongQuan() {
         )}
       </Card>
 
-      <div className="grid grid-cols-2 gap-6 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
         <Card className="p-5">
           <h3 className="font-display font-semibold text-[var(--color-ink)] mb-4">Phân bổ theo đơn vị</h3>
           {phanBoDonVi.length === 0 ? (

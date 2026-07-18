@@ -128,8 +128,8 @@ export default function Layout({ children }) {
           <div className="font-display text-base font-semibold">Quản lý Nhân sự</div>
         </div>
 
-        <main className="flex-1 min-w-0 overflow-y-auto">
-          <div className="max-w-[1400px] mx-auto px-4 py-5 md:px-8 md:py-8">{children}</div>
+        <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden">
+          <div className="max-w-[1400px] mx-auto px-4 py-5 md:px-8 md:py-8 min-w-0">{children}</div>
         </main>
       </div>
     </div>

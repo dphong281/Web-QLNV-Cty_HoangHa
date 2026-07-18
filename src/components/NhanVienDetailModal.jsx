@@ -49,7 +49,7 @@ export default function NhanVienDetailModal({ detail, onClose, onEdit }) {
 
         <section>
           <h4 className="font-display font-semibold text-[var(--color-ink)] mb-2">Thông tin cá nhân</h4>
-          <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
             <Field label="Ngày sinh">{formatDate(detail['Ngày sinh'])}{age != null ? ` (${age} tuổi)` : ''}</Field>
             <Field label="Giới tính">{detail['Giới tính']}</Field>
             <Field label="Tình trạng hôn nhân">{detail['Tình trạng hôn nhân']}</Field>
@@ -65,7 +65,7 @@ export default function NhanVienDetailModal({ detail, onClose, onEdit }) {
 
         <section>
           <h4 className="font-display font-semibold text-[var(--color-ink)] mb-2">Liên hệ</h4>
-          <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
             <Field label="SĐT">{detail['Số ĐT']}</Field>
             <Field label="Email cá nhân">{detail['Email']}</Field>
             <Field label="Email công ty">{detail['Email công ty']}</Field>
@@ -75,7 +75,7 @@ export default function NhanVienDetailModal({ detail, onClose, onEdit }) {
 
         <section>
           <h4 className="font-display font-semibold text-[var(--color-ink)] mb-2">Công việc</h4>
-          <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
             <Field label="Chức vụ / Cấp bậc">{detail['Chức vụ']}{detail['Cấp bậc'] ? ` — ${detail['Cấp bậc']}` : ''}</Field>
             <Field label="Nơi làm việc">{detail['Nơi làm việc']}</Field>
             <Field label="Ngạch">{detail['Ngạch']}</Field>
@@ -127,7 +127,7 @@ export default function NhanVienDetailModal({ detail, onClose, onEdit }) {
           {loadingExtra ? (
             <div className="text-[var(--color-text-muted)]">Đang tải...</div>
           ) : salary ? (
-            <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
               <Field label="Lương chức danh (Lương CB, đóng BHXH)">{formatCurrency(salary.luong_co_ban)}</Field>
               <Field label="Tổng phụ cấp">{formatCurrency(tinhTongPhuCap(salary))}</Field>
               <Field label="Tổng thu nhập">{formatCurrency(tinhTongThuNhap(salary))}</Field>
@@ -137,7 +137,7 @@ export default function NhanVienDetailModal({ detail, onClose, onEdit }) {
 
         <section>
           <h4 className="font-display font-semibold text-[var(--color-ink)] mb-2">Học vấn &amp; Ngân hàng</h4>
-          <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
             <Field label="Trình độ / Chuyên ngành">{detail['Trình độ'] ? `${detail['Trình độ']}${detail['Chuyên ngành'] ? ' — ' + detail['Chuyên ngành'] : ''}` : null}</Field>
             <Field label="Số người phụ thuộc">{detail['Số người phụ thuộc']}</Field>
             <Field label="Tài khoản ngân hàng">{detail['Số tài khoản'] ? `${detail['Số tài khoản']} — ${detail['Ngân hàng'] || '—'}` : null}</Field>
@@ -153,7 +153,7 @@ export default function NhanVienDetailModal({ detail, onClose, onEdit }) {
 
         <section>
           <h4 className="font-display font-semibold text-[var(--color-ink)] mb-2">Nghỉ hưu (tham khảo theo luật)</h4>
-          <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
             <Field label="Tuổi nghỉ hưu theo luật">{retirementAge}</Field>
             <Field label="Ngày dự kiến nghỉ hưu">{countdown ? formatDate(countdown.date) : null}</Field>
             <Field label="Còn lại đến nghỉ hưu">

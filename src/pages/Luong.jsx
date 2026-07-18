@@ -177,7 +177,7 @@ export default function Luong() {
 
   return (
     <div>
-      <div className="flex items-start justify-between mb-6">
+      <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
         <div>
           <h1 className="font-display text-2xl font-semibold text-[var(--color-ink)]">Lương</h1>
           <p className="text-sm text-[var(--color-text-muted)] mt-1">
@@ -196,7 +196,7 @@ export default function Luong() {
         </div>
       </div>
 
-      <div className="flex items-end gap-3 mb-4">
+      <div className="flex flex-wrap items-end gap-3 mb-4">
         <Select label="Tháng" value={month} onChange={(e) => setMonth(Number(e.target.value))} className="max-w-[100px]">
           {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => <option key={m} value={m}>{m}</option>)}
         </Select>
@@ -228,8 +228,7 @@ export default function Luong() {
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-xs text-[var(--color-text-muted)] uppercase tracking-wide border-b border-[var(--color-line)]">
-                <th className="px-4 py-3 font-medium sticky left-0 bg-[var(--color-surface)]">Mã NV</th>
-                <th className="px-4 py-3 font-medium hidden sm:table-cell">Họ tên</th>
+                <th className="px-4 py-3 font-medium sticky left-0 bg-[var(--color-surface)]">Nhân viên</th>
                 <th className="px-4 py-3 font-medium hidden md:table-cell">Khối</th>
                 <th className="px-4 py-3 font-medium text-right">Lương CB</th>
                 <th className="px-4 py-3 font-medium text-right">Phụ cấp</th>
@@ -250,11 +249,9 @@ export default function Luong() {
             <tbody>
               {rows.map((r) => (
                 <tr key={r.payrollId} className="border-b border-[var(--color-line)] last:border-0 hover:bg-black/[0.015]">
-                  <td className="px-4 py-2.5 font-medium text-[var(--color-ink)] sticky left-0 bg-[var(--color-surface)]">
-                    <button onClick={() => openHoSoLuong(r.maNv)} className="hover:underline">{r.maNv}</button>
-                  </td>
-                  <td className="px-4 py-2.5 hidden sm:table-cell">
+                  <td className="px-4 py-2.5 font-medium text-[var(--color-ink)] sticky left-0 bg-[var(--color-surface)] whitespace-nowrap">
                     <button onClick={() => openHoSoLuong(r.maNv)} className="hover:underline text-left">{r.hoTen}</button>
+                    <div className="text-xs font-normal text-[var(--color-text-muted)]">{r.maNv}</div>
                   </td>
                   <td className="px-4 py-2.5 text-[var(--color-text-muted)] hidden md:table-cell">{KHOI_LABELS[r.khoi] || r.khoi}</td>
                   <td className="px-4 py-2.5 text-right">{money(r.luongCoBan)}</td>

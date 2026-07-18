@@ -91,7 +91,7 @@ export default function NhatKy() {
                   <div className="text-xs text-[var(--color-text-muted)] shrink-0 text-right">{formatDateTime(item.created_at)}</div>
                 </div>
                 {expandedId === item.id && (item.du_lieu_truoc || item.du_lieu_sau) && (
-                  <div className="mt-3 grid grid-cols-2 gap-3">
+                  <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {item.du_lieu_truoc && (
                       <div className="bg-black/[0.02] rounded-lg p-3 overflow-x-auto">
                         <div className="text-xs font-medium text-[var(--color-text-muted)] uppercase mb-1.5">Trước khi thay đổi</div>

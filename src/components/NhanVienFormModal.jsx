@@ -137,7 +137,7 @@ export default function NhanVienFormModal({ open, onClose, editing, form, setFor
               <span className="text-sm text-[var(--color-text-muted)]">Đã có {done}/{total} loại giấy tờ</span>
               <span className="text-sm font-medium text-[var(--color-ink)]">{percent}%</span>
             </div>
-            <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
               {HO_SO_CHECKLIST_ITEMS.map((item) => (
                 <Checkbox key={item.key} label={item.label} checked={!!hoSo[item.key]} onChange={() => toggleHoSo(item.key)} />
               ))}

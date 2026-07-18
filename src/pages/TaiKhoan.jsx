@@ -84,7 +84,7 @@ export default function TaiKhoan() {
 
   return (
     <div>
-      <div className="flex items-start justify-between mb-6">
+      <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
         <div>
           <h1 className="font-display text-2xl font-semibold text-[var(--color-ink)]">Tài khoản</h1>
           <p className="text-sm text-[var(--color-text-muted)] mt-1">{list.length} tài khoản</p>
@@ -92,16 +92,16 @@ export default function TaiKhoan() {
         {canCreate && <Button variant="accent" onClick={openAdd}>+ Tạo tài khoản</Button>}
       </div>
 
-      <Card>
+      <Card className="overflow-x-auto">
         {loading ? <LoadingState /> : error ? <div className="p-4"><ErrorState message={error} /></div> : list.length === 0 ? (
           <EmptyState title="Chưa có tài khoản nào" />
         ) : (
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-xs text-[var(--color-text-muted)] uppercase tracking-wide border-b border-[var(--color-line)]">
-                <th className="px-4 py-3 font-medium">Họ tên</th>
-                <th className="px-4 py-3 font-medium">Email</th>
-                <th className="px-4 py-3 font-medium">Phòng ban / Chức vụ</th>
+                <th className="px-4 py-3 font-medium sticky left-0 bg-[var(--color-surface)]">Họ tên</th>
+                <th className="px-4 py-3 font-medium hidden sm:table-cell">Email</th>
+                <th className="px-4 py-3 font-medium hidden md:table-cell">Phòng ban / Chức vụ</th>
                 <th className="px-4 py-3 font-medium">Trạng thái</th>
                 <th className="px-4 py-3 font-medium text-right">Thao tác</th>
               </tr>
@@ -109,17 +109,17 @@ export default function TaiKhoan() {
             <tbody>
               {list.map((acc) => (
                 <tr key={acc.user_id} className="border-b border-[var(--color-line)] last:border-0 hover:bg-black/[0.015]">
-                  <td className="px-4 py-2.5 font-medium text-[var(--color-ink)]">{acc.ho_ten}</td>
-                  <td className="px-4 py-2.5 text-[var(--color-text-muted)]">{acc.email}</td>
-                  <td className="px-4 py-2.5 text-[var(--color-text-muted)]">
+                  <td className="px-4 py-2.5 font-medium text-[var(--color-ink)] sticky left-0 bg-[var(--color-surface)] whitespace-nowrap">{acc.ho_ten}</td>
+                  <td className="px-4 py-2.5 text-[var(--color-text-muted)] hidden sm:table-cell whitespace-nowrap">{acc.email}</td>
+                  <td className="px-4 py-2.5 text-[var(--color-text-muted)] hidden md:table-cell whitespace-nowrap">
                     {acc.is_admin ? <Badge className="bg-[var(--color-accent)]/12 text-[var(--color-accent-dark)]">Admin</Badge> : `${PHONG_BAN_LABELS[acc.phong_ban] || ''} — ${CHUC_VU_LABELS[acc.chuc_vu] || ''}`}
                   </td>
-                  <td className="px-4 py-2.5">
+                  <td className="px-4 py-2.5 whitespace-nowrap">
                     <Badge className={acc.is_active ? 'bg-[var(--color-good)]/10 text-[var(--color-good)]' : 'bg-[var(--color-danger)]/10 text-[var(--color-danger)]'}>
                       {acc.is_active ? 'Hoạt động' : 'Đã khoá'}
                     </Badge>
                   </td>
-                  <td className="px-4 py-2.5 text-right space-x-2">
+                  <td className="px-4 py-2.5 text-right space-x-2 whitespace-nowrap">
                     {isAdmin && <button onClick={() => setResetTarget(acc)} className="text-[var(--color-ink)] hover:underline text-sm font-medium">Đặt lại MK</button>}
                     {(isAdmin || (isTruongPhong && acc.phong_ban === phongBan && !acc.is_admin)) && (
                       <button onClick={() => handleToggle(acc)} className="text-[var(--color-danger)] hover:underline text-sm font-medium">{acc.is_active ? 'Khoá' : 'Mở khoá'}</button>

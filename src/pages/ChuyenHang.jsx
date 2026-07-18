@@ -97,7 +97,7 @@ export default function ChuyenHang() {
 
   return (
     <div>
-      <div className="flex items-start justify-between mb-6">
+      <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
         <div>
           <h1 className="font-display text-2xl font-semibold text-[var(--color-ink)]">Chuyến hàng</h1>
           <p className="text-sm text-[var(--color-text-muted)] mt-1">{list.length} chuyến</p>

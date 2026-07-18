@@ -105,7 +105,7 @@ export default function CaKip() {
 
   return (
     <div>
-      <div className="flex items-start justify-between mb-6">
+      <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
         <div>
           <h1 className="font-display text-2xl font-semibold text-[var(--color-ink)]">Ca kíp</h1>
           <p className="text-sm text-[var(--color-text-muted)] mt-1">Lịch làm việc theo tuần — bấm vào ô để đổi ca (xoay vòng: Off → Ca 1 → Ca 2 → Ca 3)</p>
@@ -116,7 +116,7 @@ export default function CaKip() {
         </div>
       </div>
 
-      <div className="flex items-center gap-3 mb-4">
+      <div className="flex flex-wrap items-center gap-3 mb-4">
         <Select value={unitId} onChange={(e) => setUnitId(e.target.value)} className="max-w-xs">
           {donViList.map((d) => <option key={d.id} value={d.id}>{d.ten_don_vi}</option>)}
         </Select>

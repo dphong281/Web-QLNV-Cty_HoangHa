@@ -12,22 +12,28 @@ function trangThaiBadge(t) {
 function WarningTable({ rows, columns, emptyTitle }) {
   if (rows.length === 0) return <EmptyState title={emptyTitle} />
   return (
-    <table className="w-full text-sm">
-      <thead>
-        <tr className="text-left text-xs text-[var(--color-text-muted)] uppercase tracking-wide border-b border-[var(--color-line)]">
-          {columns.map((c) => <th key={c.key} className="px-4 py-2.5 font-medium">{c.label}</th>)}
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map((r) => (
-          <tr key={r.maNv} className="border-b border-[var(--color-line)] last:border-0 hover:bg-black/[0.015]">
-            {columns.map((c) => (
-              <td key={c.key} className="px-4 py-2.5">{c.render ? c.render(r) : r[c.key]}</td>
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="text-left text-xs text-[var(--color-text-muted)] uppercase tracking-wide border-b border-[var(--color-line)]">
+            {columns.map((c, i) => (
+              <th key={c.key} className={`px-4 py-2.5 font-medium whitespace-nowrap ${i === 0 ? 'sticky left-0 bg-[var(--color-surface)]' : ''} ${c.hideOnMobile ? 'hidden sm:table-cell' : ''}`}>{c.label}</th>
             ))}
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={r.maNv} className="border-b border-[var(--color-line)] last:border-0 hover:bg-black/[0.015]">
+              {columns.map((c, i) => (
+                <td key={c.key} className={`px-4 py-2.5 whitespace-nowrap ${i === 0 ? 'sticky left-0 bg-[var(--color-surface)] font-medium text-[var(--color-ink)]' : ''} ${c.hideOnMobile ? 'hidden sm:table-cell' : ''}`}>
+                  {c.render ? c.render(r) : r[c.key]}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   )
 }
 
@@ -59,9 +65,9 @@ export default function DashboardTheoDoi() {
           columns={[
             { key: 'maNv', label: 'Mã NV' },
             { key: 'hoTen', label: 'Họ và tên' },
-            { key: 'boPhan', label: 'Bộ phận' },
+            { key: 'boPhan', label: 'Bộ phận', hideOnMobile: true },
             { key: 'loaiHd', label: 'Loại HĐ' },
-            { key: 'ngayHetHan', label: 'Ngày hết hạn', render: (r) => formatDate(r.ngayHetHan) },
+            { key: 'ngayHetHan', label: 'Ngày hết hạn', render: (r) => formatDate(r.ngayHetHan), hideOnMobile: true },
             { key: 'soNgayConLai', label: 'Số ngày còn lại', render: (r) => r.soNgayConLai < 0 ? `Quá ${-r.soNgayConLai} ngày` : r.soNgayConLai },
             { key: 'trangThaiHienThi', label: 'Trạng thái HĐ', render: (r) => trangThaiBadge(r.trangThaiHienThi) },
           ]}
@@ -79,8 +85,8 @@ export default function DashboardTheoDoi() {
           columns={[
             { key: 'maNv', label: 'Mã NV' },
             { key: 'hoTen', label: 'Họ và tên' },
-            { key: 'boPhan', label: 'Bộ phận' },
-            { key: 'ngayHetHan', label: 'Kết thúc thử việc', render: (r) => formatDate(r.ngayHetHan) },
+            { key: 'boPhan', label: 'Bộ phận', hideOnMobile: true },
+            { key: 'ngayHetHan', label: 'Kết thúc thử việc', render: (r) => formatDate(r.ngayHetHan), hideOnMobile: true },
             { key: 'soNgayConLai', label: 'Số ngày còn lại', render: (r) => r.soNgayConLai < 0 ? `Quá ${-r.soNgayConLai} ngày` : r.soNgayConLai },
             { key: 'trangThaiHienThi', label: 'Trạng thái TV', render: (r) => trangThaiBadge(r.trangThaiHienThi) },
           ]}
